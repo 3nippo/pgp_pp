@@ -1,0 +1,139 @@
+#pragma once
+
+#include <cuda_runtime.h>
+#include <cuda.h>
+
+#include <iostream>
+#include <vector>
+
+
+template<typename T>
+void check(T err, const char* const func, const char* const file, const int line) {
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA error at: " << file << ":" << line << std::endl;
+        std::cerr << cudaGetErrorString(err) << " " << func << std::endl;
+        exit(1);
+    }
+}
+
+#define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
+
+// This will output the proper error string when calling cudaGetLastError
+#define getLastCudaError(msg) __getLastCudaError(msg, __FILE__, __LINE__)
+
+inline void __getLastCudaError(const char *errorMessage, const char *file,
+                               const int line) {
+  cudaError_t err = cudaGetLastError();
+
+  if (cudaSuccess != err) {
+    fprintf(stderr,
+            "%s(%i) : getLastCudaError() CUDA error :"
+            " %s : (%d) %s.\n",
+            file, line, errorMessage, static_cast<int>(err),
+            cudaGetErrorString(err));
+    exit(EXIT_FAILURE);
+  }
+}
+
+// This will only print the proper error string when calling cudaGetLastError
+// but not exit program incase error detected.
+#define printLastCudaError(msg) __printLastCudaError(msg, __FILE__, __LINE__)
+
+inline void __printLastCudaError(const char *errorMessage, const char *file,
+                                 const int line) {
+  cudaError_t err = cudaGetLastError();
+
+  if (cudaSuccess != err) {
+    fprintf(stderr,
+            "%s(%i) : getLastCudaError() CUDA error :"
+            " %s : (%d) %s.\n",
+            file, line, errorMessage, static_cast<int>(err),
+            cudaGetErrorString(err));
+  }
+}
+
+#ifndef MAX
+#define MAX(a, b) (a > b ? a : b)
+#endif
+
+
+template <class T>
+std::vector<T> read_vector1d(size_t n)
+{
+    std::vector<T> v;
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        T input;
+        std::cin >> input;
+
+        v.push_back(input);
+    }
+
+    return v;
+}
+
+
+template <class T>
+void print_vector1d(std::vector<T> &v)
+{
+    for (size_t i = 0; i < v.size() - 1; ++i)
+        std::cout << v[i] << ' ';
+    std::cout << v.back() << std::endl;
+}
+
+
+template <class T>
+class CudaMemory
+{
+private:
+    T *ptr;
+    size_t count;
+
+public:
+    CudaMemory(size_t count) : count(count)
+    {
+        checkCudaErrors(
+            cudaMalloc(&ptr, count * sizeof(T))
+        );    
+    }
+
+    T*& get()
+    {
+        return ptr;
+    }
+
+    size_t bytes_size()
+    {
+        return count * sizeof(T);
+    }
+
+    void memcpy(void *ptr, cudaMemcpyKind kind, size_t count=0)
+    {
+        void *dst, *src;
+
+        if (kind == cudaMemcpyHostToDevice)
+        {
+            src = ptr;
+            dst = this->ptr;
+        }
+        else
+        {
+            src = this->ptr;
+            dst = ptr;
+        }
+
+        size_t count_to_cpy = (count ? count : this->count);
+
+        checkCudaErrors(
+            cudaMemcpy(dst, src, count_to_cpy * sizeof(T), kind)
+        );
+    }
+
+    ~CudaMemory()
+    {
+        checkCudaErrors(
+            cudaFree(ptr)
+        );
+    }
+};
