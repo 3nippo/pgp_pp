@@ -14,8 +14,6 @@ for t in range(tests_num):
     else:
         N = np.random.randint(0, n + 1)
 
-    N = 10
-
     a = np.random.randint(-n, n, N) * np.random.uniform(0, 1, N)
     b = np.random.randint(-n, n, N) * np.random.uniform(0, 1, N)
 
