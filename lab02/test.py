@@ -29,11 +29,13 @@ def generate_data():
     w = np.random.randint(0, 10**8 + 1)
     h = 10**8 // w
 
+    assert w*h <= 10**8, "Wrong size"
+
     image = np.random.randint(0, 2**32, w * h)
 
     with open(input_name, 'wb') as f:
-        f.write(w.to_bytes(4), 'little')
-        f.write(h.to_bytes(4), 'little')
+        f.write(w.to_bytes(4, 'little'))
+        f.write(h.to_bytes(4, 'little'))
 
         for pixel in image:
             f.write(int(pixel).to_bytes(4, 'little'))
@@ -84,7 +86,7 @@ def process_data(m, w, h):
 
 
 def write_data(m, w, h):
-    with open(output_name, 'wb') as f:
+    with open(python_output_name, 'wb') as f:
         f.write(int(w).to_bytes(4, 'little'))
         f.write(int(h).to_bytes(4, 'little'))
         # f.write(int(0).to_bytes(4, 'little'))
@@ -99,10 +101,14 @@ def write_data(m, w, h):
                 # g = y - 0.344136 * (u - 128) - 0.714136 * (v - 128)
                 # b = y + 1.772 * (u - 128)
 
-                f.write(int(r).to_bytes(1, 'little'))
-                f.write(int(g).to_bytes(1, 'little'))
-                f.write(int(b).to_bytes(1, 'little'))
-                f.write(int(0).to_bytes(1, 'little'))
+                try:
+                    f.write(int(r).to_bytes(1, 'little'))
+                    f.write(int(g).to_bytes(1, 'little'))
+                    f.write(int(b).to_bytes(1, 'little'))
+                    f.write(int(0).to_bytes(1, 'little'))
+                except:
+                    print(r, g, b)
+                    return
 
 
 for t in range(tests_num):
