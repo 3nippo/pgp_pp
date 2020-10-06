@@ -29,8 +29,6 @@ def generate_data():
     w = np.random.randint(0, 10**8 + 1)
     h = 10**8 // w
 
-    assert w*h <= 10**8, "Wrong size"
-
     image = np.random.randint(0, 2**32, w * h)
 
     with open(input_name, 'wb') as f:
@@ -93,22 +91,18 @@ def write_data(m, w, h):
 
         for i in range(h):
             for j in range(w):
-                r = m[i][j]
-                g = m[i][j]
-                b = m[i][j]
+                r = min(m[i][j], 255)
+                g = min(m[i][j], 255)
+                b = min(m[i][j], 255)
 
                 # r = y + 1.402 * (v - 128)
                 # g = y - 0.344136 * (u - 128) - 0.714136 * (v - 128)
                 # b = y + 1.772 * (u - 128)
 
-                try:
-                    f.write(int(r).to_bytes(1, 'little'))
-                    f.write(int(g).to_bytes(1, 'little'))
-                    f.write(int(b).to_bytes(1, 'little'))
-                    f.write(int(0).to_bytes(1, 'little'))
-                except:
-                    print(r, g, b)
-                    return
+                f.write(int(r).to_bytes(1, 'little'))
+                f.write(int(g).to_bytes(1, 'little'))
+                f.write(int(b).to_bytes(1, 'little'))
+                f.write(int(0).to_bytes(1, 'little'))
 
 
 for t in range(tests_num):

@@ -1,5 +1,5 @@
 CC = nvcc
-FLAGS = -gencode arch=compute_50,code=sm_50 -std=c++11
+FLAGS = -gencode arch=compute_50,code=sm_50
 SOURCES = lab02.cu
 BIN = lab02
 all:

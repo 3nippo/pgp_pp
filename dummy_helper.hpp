@@ -10,7 +10,8 @@
 template<typename T>
 void check(T err, const char* const func, const char* const file, const int line) {
     if (err != cudaSuccess) {
-        std::cerr << "CUDA error at: " << file << ":" << line << std::endl;
+        std::cerr << "ERROR: " << file << ":" << line << std::endl;
+        std::cerr << cudaGetErrorName(err) << " " << std::endl;
         std::cerr << cudaGetErrorString(err) << " " << func << std::endl;
         exit(1);
     }
@@ -27,7 +28,7 @@ inline void __getLastCudaError(const char *errorMessage, const char *file,
 
   if (cudaSuccess != err) {
     fprintf(stderr,
-            "%s(%i) : getLastCudaError() CUDA error :"
+            "ERROR: %s(%i) : getLastCudaError() CUDA error :"
             " %s : (%d) %s.\n",
             file, line, errorMessage, static_cast<int>(err),
             cudaGetErrorString(err));
@@ -45,7 +46,7 @@ inline void __printLastCudaError(const char *errorMessage, const char *file,
 
   if (cudaSuccess != err) {
     fprintf(stderr,
-            "%s(%i) : getLastCudaError() CUDA error :"
+            "ERROR: %s(%i) : getLastCudaError() CUDA error :"
             " %s : (%d) %s.\n",
             file, line, errorMessage, static_cast<int>(err),
             cudaGetErrorString(err));

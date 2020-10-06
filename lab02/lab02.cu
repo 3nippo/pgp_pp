@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 #include "dummy_helper.hpp"
 #include "image.hpp"
@@ -32,19 +33,20 @@ void kernel(uchar4 *out, uint32_t width, uint32_t height)
                    y3 = to_grayscale(tex2D(tex, x, y+1)),
                    y4 = to_grayscale(tex2D(tex, x+1, y+1));
             
-            unsigned char pixel_y = sqrtf(
-                (y1 - y4) * (y1 - y4) + (y2 - y3) * (y2 - y3)
+            unsigned char pixel_y = fminf(
+                sqrtf((y1 - y4) * (y1 - y4) + (y2 - y3) * (y2 - y3)), 255
             );
 
             out[y * width + x] = { pixel_y, pixel_y, pixel_y, 0 };
         }
 }
 
-
-int main()
+int submain()
 {
-    std::string input_name  = "./in.data",
-                output_name = "./out.data";
+    std::string input_name,
+                output_name;
+
+    std::cin >> input_name >> output_name;
 
     Image<uchar4> input_image(input_name);
     
@@ -100,6 +102,20 @@ int main()
     checkCudaErrors(cudaUnbindTexture(tex));
 
     checkCudaErrors(cudaFreeArray(cuda_array));
+
+    return 0;
+}
+
+int main()
+{
+    try
+    {
+        submain();
+    }
+    catch (const std::exception &err)
+    {
+        std::cout << "ERROR:" << err.what() << std::endl;
+    }
 
     return 0;
 }
