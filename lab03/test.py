@@ -135,6 +135,8 @@ def process_data(image, nc, npjs):
 
         sum_vec = sum_vec / npj[0]
 
+        print(sum_vec)
+
         avg.append(sum_vec)
 
         cov_matrix = np.zeros((3, 3))
@@ -188,13 +190,13 @@ def write_data(result):
 
 
 for t in range(tests_num):
-    generate_data()
+    # generate_data()
 
-    # args = read_data()
+    args = read_data()
 
-    # result = process_data(*args)
+    result = process_data(*args)
 
-    # write_data(result)
+    write_data(result)
 
     break
 

@@ -89,9 +89,10 @@ class CudaMemory
 {
 private:
     T *ptr;
-    size_t count;
 
 public:
+    size_t count;
+
     CudaMemory(size_t count) : count(count)
     {
         checkCudaErrors(
