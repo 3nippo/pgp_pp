@@ -104,7 +104,7 @@ void reduce_avg(
             b[1] = image[next_position].y;
             b[2] = image[next_position].z;
             
-            sum_vectors(a, b, sdata[tid], 1, 3);
+            sum_vectors_v(a, b, sdata[tid], 1, 3);
         }
         else
         {
