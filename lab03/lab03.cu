@@ -20,18 +20,6 @@ uint32_t cov_matrices_norms_h[MAX_N_CLASSES];
 float reverse_cov_matrices_h[MAX_N_CLASSES * 9];
 
 
-/* __device__ */
-/* void sum_vectors(float *a, float *b, float *result, size_t dim1, size_t dim2) */
-/* { */
-/*     for (size_t i = 0; i < dim1; ++i) */
-/*         for (size_t j = 0; j < dim2; ++j) */
-/*         { */
-/*             size_t idx = i * dim2 + j; */
-/*             result[idx] = a[idx] + b[idx]; */
-/*         } */
-/* } */
-
-
 __device__
 void sum_vectors(float *a, float *b, float *result, size_t dim1, size_t dim2)
 {
@@ -45,7 +33,7 @@ void sum_vectors(float *a, float *b, float *result, size_t dim1, size_t dim2)
 
 
 __device__
-void sum_vectors_v(float *a, float *b, volatile float *result, size_t dim1, size_t dim2)
+void sum_vectors_v(volatile float *a, volatile float *b, volatile float *result, size_t dim1, size_t dim2)
 {
     for (size_t i = 0; i < dim1; ++i)
         for (size_t j = 0; j < dim2; ++j)
@@ -67,10 +55,6 @@ void mul_vectors(
         size_t b_dim2
 )
 {
-    /* for (size_t i = 0; i < a_dim1; ++i) */
-    /*     for (size_t j = 0; j < b_dim2; ++j) */
-    /*         result[i * b_dim2 + j] = 0; */
-
     for (size_t i = 0; i < b_dim2; ++i)
         for (size_t j = 0; j < a_dim1; ++j)
         {
@@ -131,12 +115,9 @@ void reduce_avg(
             a[1] = image[position].y;
             a[2] = image[position].z;
             
-            sum_vectors(a, sdata[tid], sdata[tid], 1, 3);
-
-            /* sdata[tid][0] = a[0]; */
-            /* sdata[tid][1] = a[1]; */
-            /* sdata[tid][2] = a[2]; */
+            sum_vectors_v(a, sdata[tid], sdata[tid], 1, 3);
         }
+
         i += offset;
     }
     
@@ -154,6 +135,14 @@ void reduce_avg(
         if (BLOCK_SIZE_REDUCE >= 8)  { sum_vectors_v(sdata[tid], sdata[tid +  4], sdata[tid], 1, 3); __syncthreads();}
         if (BLOCK_SIZE_REDUCE >= 4)  { sum_vectors_v(sdata[tid], sdata[tid +  2], sdata[tid], 1, 3); __syncthreads();}
         if (BLOCK_SIZE_REDUCE >= 2)  { sum_vectors_v(sdata[tid], sdata[tid +  1], sdata[tid], 1, 3); __syncthreads();}
+
+        /* if (BLOCK_SIZE_REDUCE >= 64) { sum_vectors_v(sdata[tid], sdata[tid + 32], sdata[tid], 1, 3); } */
+        /* if (BLOCK_SIZE_REDUCE >= 32) { sum_vectors_v(sdata[tid], sdata[tid + 16], sdata[tid], 1, 3); } */
+        /* if (BLOCK_SIZE_REDUCE >= 16) { sum_vectors_v(sdata[tid], sdata[tid +  8], sdata[tid], 1, 3); } */
+        /* if (BLOCK_SIZE_REDUCE >= 8)  { sum_vectors_v(sdata[tid], sdata[tid +  4], sdata[tid], 1, 3); } */
+        /* if (BLOCK_SIZE_REDUCE >= 4)  { sum_vectors_v(sdata[tid], sdata[tid +  2], sdata[tid], 1, 3); } */
+        /* if (BLOCK_SIZE_REDUCE >= 2)  { sum_vectors_v(sdata[tid], sdata[tid +  1], sdata[tid], 1, 3); } */
+
     }
 
     if (tid == 0)
@@ -255,8 +244,6 @@ int submain()
             cudaMemcpyDeviceToHost
         );
 
-        /* std::cout << reduced_buffer_h[0] << std::endl; */
-
         float r = 0,
               g = 0,
               b = 0;
@@ -283,27 +270,7 @@ int submain()
 
         start += samples_h[start]*2 + 1;
     }
-    /* calc_avg_cov_reduced<<<grid_size, block_size>>>(); */
-
-    /* kernel<<<dim3(4, 4), dim3(16, 16)>>>( */
-    /*     output_image_buffer_d.get(), */ 
-    /*     input_image.width, */ 
-    /*     input_image.height */
-    /* ); */
-
-    /* Image<uchar4> output_image = input_image; */
-
-    /* output_image_buffer_d.memcpy( */
-    /*     output_image.buffer.data(), */
-    /*     cudaMemcpyDeviceToHost */
-    /* ); */
-
-    /* output_image.save(output_name); */
-
-    /* checkCudaErrors(cudaUnbindTexture(tex)); */
-
-    /* checkCudaErrors(cudaFreeArray(cuda_array)); */
-
+    
     return 0;
 }
 

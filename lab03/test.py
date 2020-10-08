@@ -1,3 +1,4 @@
+import sys
 import math
 import numpy as np
 import subprocess
@@ -190,7 +191,9 @@ def write_data(result):
 
 
 for t in range(tests_num):
-    # generate_data()
+    compare = len(sys.argv) != 1 and sys.argv == 'compare'
+    if not compare:
+        generate_data()
 
     args = read_data()
 
@@ -198,7 +201,8 @@ for t in range(tests_num):
 
     write_data(result)
 
-    break
+    if compare:
+        break
 
     # run C++ solution
     process = subprocess.Popen(
