@@ -32,7 +32,7 @@ def report_error(test_index, error_code, error):
 
 
 def generate_data():
-    w = np.random.randint(0, 10**8 // 2)
+    w = np.random.randint(0, 4 * 10**8 // 10000)
     h = 4*10**8 // w
 
     image = np.random.randint(0, 2**32, w * h)
@@ -52,35 +52,27 @@ def generate_data():
 
         print(nc, file=f)
 
-        pixel_positions = np.array([
-            (i, j)
-            for i in range(h) for j in range(w)
-        ])
-
-        start = 0
+        used_positions = set()
 
         for _ in range(nc):
             npj = np.random.randint(0, 2**19 + 1)
 
-            choosed_pixel_positions = np.random.choice(
-                pixel_positions[start:],
-                npj,
-                False
-            )
+            choosed_pixel_positions = []
 
-            for pixel_position in choosed_pixel_positions:
-                pixel_position_index = pixel_position[0] * w + pixel_position[1]
+            for _ in range(npj):
+                while (pixel_position := (np.random.randint(0, h), np.random.randint(0, w))) in used_positions:
+                    pass
 
-                pixel_positions[pixel_position_index], pixel_positions[start] = pixel_positions[start], pixel_positions[pixel_position_index]
+                choosed_pixel_positions.append(pixel_position)
 
-                start += 1
+                used_positions.add(pixel_position)
 
             single_coordinates = []
 
             for pixel_position in choosed_pixel_positions:
                 single_coordinates.extend(pixel_position)
 
-            sample_line = " ".join([npj] + single_coordinates)
+            sample_line = " ".join([str(npj)] + list(map(str, single_coordinates)))
 
             print(sample_line, file=f)
 
@@ -94,21 +86,26 @@ def read_data():
 
         image = []
 
-        for i in range(w*h):
-            r = f.read(1)
-            g = f.read(1)
-            b = f.read(1)
-            _ = f.read(1)
+        for i in range(h):
+            image_row = []
 
-            r, g, b = map(lambda x: int.from_bytes(x, 'little'), [r, g, b])
+            for j in range(w):
+                r = f.read(1)
+                g = f.read(1)
+                b = f.read(1)
+                _ = f.read(1)
 
-            image.append((r, g, b))
+                r, g, b = map(lambda x: int.from_bytes(x, 'little'), [r, g, b])
 
-    image = np.array(image).reshape((h, w, 3))
+                image_row.append((r, g, b))
+
+            image.append(image_row)
+
+    print('Entered')
 
     with open(stdin_name) as f:
-        _ = f.readline().strip()
-        _ = f.readline().strip()
+        _ = f.readline()
+        _ = f.readline()
 
         nc = int(f.readline().strip())
 
@@ -119,10 +116,10 @@ def read_data():
 
             npjs.append(list(sample_line))
 
-    return image, nc, npjs
+    return image, nc, npjs, h, w
 
 
-def process_data(image, nc, npjs):
+def process_data(image, nc, npjs, h, w):
     avg = []
     cov_matrices = []
 
@@ -132,7 +129,7 @@ def process_data(image, nc, npjs):
         npj = npjs[i]
 
         for j in range(1, len(npj), 2):
-            sum_vec += image[npj[j+1], npj[j], :].reshape((-1, 1))
+            sum_vec += np.array(image[npj[j+1]][npj[j]]).reshape((-1, 1))
 
         sum_vec = sum_vec / npj[0]
 
@@ -143,20 +140,16 @@ def process_data(image, nc, npjs):
         cov_matrix = np.zeros((3, 3))
 
         for j in range(1, len(npj), 2):
-            pixel = image[npj[j+1], npj[j], :].reshape((-1, 1))
+            pixel = np.array(image[npj[j+1]][npj[j]]).reshape((-1, 1))
             cov_matrix += (pixel - avg[-1]) @ (pixel - avg[-1]).T
 
         cov_matrix = cov_matrix / (npj[0] - 1)
 
         cov_matrices.append(cov_matrix)
 
-    new_image = []
-
-    h, w, _ = image.shape
-
     for i in range(h):
         for j in range(w):
-            pixel = image[i, j, :].reshape((-1, 1))
+            pixel = np.array(image[i][j]).reshape((-1, 1))
 
             mmp = [
                 -((pixel - avg[i]).T @ np.linalg.inv(cov_matrices[i]) @ (pixel - avg[i]) + np.log(np.linalg.norm(cov_matrices[i], 1)))[0][0]
@@ -165,11 +158,9 @@ def process_data(image, nc, npjs):
 
             pixel_class = np.argmax(mmp)
 
-            new_image.append((*pixel, pixel_class))
+            image[i][j].append(pixel_class)
 
-    new_image = np.array(new_image).reshape((h, w, 4))
-
-    return new_image
+    return image
 
 
 def write_data(result):
@@ -182,7 +173,7 @@ def write_data(result):
 
         for i in range(h):
             for j in range(w):
-                r, g, b, a = result[i, j, :]
+                r, g, b, a = result[i][j]
 
                 f.write(int(r).to_bytes(1, 'little'))
                 f.write(int(g).to_bytes(1, 'little'))
@@ -190,19 +181,21 @@ def write_data(result):
                 f.write(int(a).to_bytes(1, 'little'))
 
 
+gen_data = 'generate' in sys.argv
+dont_gen_data = 'dont_generate' in sys.argv
+
 for t in range(tests_num):
-    compare = len(sys.argv) != 1 and sys.argv == 'compare'
-    if not compare:
+    if not dont_gen_data:
         generate_data()
+
+    if gen_data:
+        break
 
     args = read_data()
 
     result = process_data(*args)
 
-    write_data(result)
-
-    if compare:
-        break
+    # write_data(result)
 
     # run C++ solution
     process = subprocess.Popen(
