@@ -2,7 +2,7 @@
 #include <string>
 #include <stdexcept>
 
-#include "dummy_helper.hpp"
+#include "dummy_helper.cuh"
 #include "image.hpp"
 
 

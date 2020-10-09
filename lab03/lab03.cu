@@ -2,90 +2,28 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <limits>
 
-#include "dummy_helper.hpp"
+#include "dummy_helper.cuh"
 #include "image.hpp"
+#include "math.cuh"
 
 #define MAX_N_CLASSES 32
 #define REDUCTION_BLOCK_SIZE 256
 #define REDUCTION_GRID_SIZE 16
+#define BLOCK_SIZE 256
+#define GRID_SIZE 16
 #define DIM1 3
 #define DIM2 1
 
-
-__constant__ float avg[MAX_N_CLASSES][3];
+__device__ __constant__ float avg[MAX_N_CLASSES][DIM1 * DIM2];
 __constant__ float cov_matrices_norms[MAX_N_CLASSES];
-__constant__ float inversed_cov_matrices[MAX_N_CLASSES][9];
-
-
-__host__ __device__
-void sum_vectors(
-        float *a, 
-        float *b, 
-        float *result, 
-        size_t dim1,
-        size_t dim2
-)
-{
-    for (size_t i = 0; i < dim1; ++i)
-        for (size_t j = 0; j < dim2; ++j)
-        {
-            size_t idx = i * dim2 + j;
-            result[idx] = a[idx] + b[idx];
-        }
-}
-
-
-__device__
-void sum_vectors_v(
-        volatile float *a, 
-        volatile float *b, 
-        volatile float *result, 
-        size_t dim1,
-        size_t dim2
-)
-{
-    for (size_t i = 0; i < dim1; ++i)
-        for (size_t j = 0; j < dim2; ++j)
-        {
-            size_t idx = i * dim2 + j;
-            result[idx] = a[idx] + b[idx];
-        }
-}
-
-
-__host__ __device__
-void multiply_vectors(
-        float *a, 
-        float *b, 
-        float *result, 
-        size_t a_dim1,
-        size_t a_dim2,
-        size_t b_dim2
-)
-{
-    for (size_t i = 0; i < b_dim2; ++i)
-        for (size_t j = 0; j < a_dim1; ++j)
-        {
-            float current_value = 0;
-
-            for (size_t k = 0; k < a_dim2; ++k)
-                current_value += a[j * a_dim2 + k] * b[k * b_dim2 + i];
-
-            result[j * b_dim2 + i] = current_value;
-        }
-}
-
-
-float matrix_norm(float *m, size_t dim1, size_t dim2) { return 0;  }
-
-
-void inverse_matrix(float *m, float *result, size_t dim) {}
+__constant__ float inverse_cov_matrices[MAX_N_CLASSES][DIM1 * DIM1];
 
 
 class PixelReader
 {
-protected:
+public:
     template <typename PixelType>
     __host__ __device__
     void read_pixel(float *v, PixelType pixel);
@@ -178,7 +116,7 @@ public:
 
             float ma[dim1*dim1], mb[dim1*dim1];
 
-            multiply_vectors(
+            mul_vectors(
                 a_difference_with_avg, 
                 a_difference_with_avg,
                 ma,
@@ -187,7 +125,7 @@ public:
                 dim1
             );
 
-            multiply_vectors(
+            mul_vectors(
                 b_difference_with_avg, 
                 b_difference_with_avg,
                 mb,
@@ -211,7 +149,7 @@ public:
 
             float m[dim1*dim1];
 
-            multiply_vectors(
+            mul_vectors(
                 difference_with_avg, 
                 difference_with_avg,
                 m,
@@ -327,6 +265,7 @@ void init_reduction_step(
 ) 
 {
     size_t start = 0;
+    size_t reduction_buffer_offset = dim1 * dim2 * REDUCTION_GRID_SIZE;
 
     for (size_t current_class = 0; current_class < n_classes; ++current_class)
     {
@@ -336,7 +275,7 @@ void init_reduction_step(
             samples,
             current_class,
             start,
-            reduction_buffer,
+            reduction_buffer + reduction_buffer_offset * current_class,
             init,
             Deinit<dim1, dim2>()
         );
@@ -346,12 +285,11 @@ void init_reduction_step(
 }
 
 
-template <size_t dim1, size_t dim2>
+template <size_t dim1, size_t dim2, bool is_avg>
 void init_completion_step(
     CudaMemory<float> &reduction_buffer_d, 
-    size_t n_classes, 
-    float **constant_memory_d,
-    float *cov_matrices_norms_d=nullptr
+    std::vector<uint32_t> &samples,
+    size_t n_classes
 )
 {
     const size_t reduction_buffer_offset = dim1 * dim2 * REDUCTION_GRID_SIZE;
@@ -363,8 +301,12 @@ void init_completion_step(
         reduction_buffer_h.data(),
         cudaMemcpyDeviceToHost
     );
-    
-    for (size_t current_class = 0, grid_start = 0; current_class < n_classes; ++current_class, grid_start += reduction_buffer_offset)
+
+    for (
+            size_t current_class = 0, grid_start = 0, sample_start = 0; 
+            current_class < n_classes; 
+            ++current_class, grid_start += reduction_buffer_offset, sample_start += 1 + 2 * samples[sample_start]
+        )
     {
         for (size_t i = 0; i < dim1 * dim2; ++i)
             constant_memory_h[current_class][i] = 0;
@@ -377,9 +319,16 @@ void init_completion_step(
                 dim1,
                 dim2
             );
+        
+        bool subtract = !is_avg;
+        for (size_t i = 0; i < dim1 * dim2; ++i)
+            constant_memory_h[current_class][i] /= (samples[sample_start] - subtract);
+        
+        if (is_avg)
+            revert_sign(constant_memory_h[current_class], dim1, dim2);
     }
 
-    if (cov_matrices_norms_d != nullptr)
+    if (!is_avg)
     {
         float cov_matrices_norms_h[MAX_N_CLASSES];
 
@@ -399,21 +348,27 @@ void init_completion_step(
         }
 
         checkCudaErrors(cudaMemcpyToSymbol(
-            cov_matrices_norms_d,
+            cov_matrices_norms,
             cov_matrices_norms_h,
             MAX_N_CLASSES *  sizeof(float),
             0,
             cudaMemcpyHostToDevice
         ));
+        
+        checkCudaErrors(cudaMemcpyToSymbol(
+            inverse_cov_matrices,
+            constant_memory_h,
+            MAX_N_CLASSES * dim1 * dim2 * sizeof(float)
+        ));
     }
-
-    checkCudaErrors(cudaMemcpyToSymbol(
-        constant_memory_d,
-        constant_memory_h,
-        MAX_N_CLASSES * dim1 * dim2 * sizeof(float),
-        0,
-        cudaMemcpyHostToDevice
-    ));
+    else
+    {
+        checkCudaErrors(cudaMemcpyToSymbol(
+            avg,
+            constant_memory_h,
+            MAX_N_CLASSES * dim1 * dim2 * sizeof(float)
+        ));
+    }
 }
 
 
@@ -425,42 +380,122 @@ template <
 void init_constant_memory(
     PixelPointerType input_image,
     size_t width,
-    uint32_t *samples,
+    std::vector<uint32_t> &samples_h,
+    uint32_t *samples_d,
     size_t n_classes
 )
 {
-    CudaMemory<float> reduction_buffer(DIM1 * DIM1 * REDUCTION_GRID_SIZE * MAX_N_CLASSES);
+    CudaMemory<float> reduction_buffer(dim1 * dim1 * REDUCTION_GRID_SIZE * MAX_N_CLASSES);
+    
+    CudaKernelChecker checker;
 
     init_reduction_step<dim1, dim2><<<REDUCTION_GRID_SIZE, REDUCTION_BLOCK_SIZE>>>(
         input_image,
         width,
-        samples,
+        samples_d,
         n_classes,
         reduction_buffer.get(),
         InitAvg<dim1, dim2>()
     );
 
-    init_completion_step<dim1, dim2>(
+    checker.check("init_reduction_step<InitAvg>");
+
+    init_completion_step<dim1, dim2, true>(
         reduction_buffer,
-        n_classes,
-        reinterpret_cast<float**>(avg)
+        samples_h,
+        n_classes
     );
 
     init_reduction_step<dim1, dim1><<<REDUCTION_GRID_SIZE, REDUCTION_BLOCK_SIZE>>>(
         input_image,
         width,
-        samples,
+        samples_d,
         n_classes,
         reduction_buffer.get(),
         InitCov<dim1, dim2>()
     );
 
-    init_completion_step<dim1, dim1>(
+    checker.check("init_reduction_step<InitCov>");
+
+    init_completion_step<dim1, dim1, false>(
         reduction_buffer,
-        n_classes,
-        reinterpret_cast<float**>(inversed_cov_matrices),
-        reinterpret_cast<float*>(cov_matrices_norms)
+        samples_h,
+        n_classes
     );
+}
+
+
+template <
+    size_t dim1, 
+    size_t dim2, 
+    typename PixelPointerType
+>
+__global__
+void kernel(
+    PixelPointerType input_image,
+    size_t image_buffer_count,
+    size_t n_classes,
+    float float_lowest,
+    PixelPointerType output_image
+)
+{
+    size_t offset = blockDim.x * gridDim.x;
+
+    for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < image_buffer_count; i += offset)
+    {
+        float mmp_max = float_lowest;
+        size_t mmp_max_class;
+
+        PixelReader reader;
+        float pixel[dim1 * dim2];
+        
+        reader.read_pixel(pixel, input_image[i]);
+
+        for (size_t current_class = 0; current_class < n_classes; ++current_class)
+        {    
+            float difference_with_avg[dim1 * dim2];
+            sum_vectors(
+                pixel, 
+                avg[current_class], 
+                difference_with_avg, 
+                dim1, 
+                dim2
+            );
+
+            float mul_buffer[dim2 * dim1];
+            mul_vectors(
+                difference_with_avg, 
+                inverse_cov_matrices[current_class],
+                mul_buffer,
+                dim2,
+                dim1,
+                dim1
+            );
+
+            float result;
+            mul_vectors(
+                mul_buffer,
+                difference_with_avg,
+                &result,
+                dim2,
+                dim1,
+                dim2
+            );
+
+            if (-result > mmp_max)
+            {
+                mmp_max = -result;
+                mmp_max_class = current_class;
+            }
+        }
+
+        output_image[i] = { 
+            static_cast<unsigned char>(pixel[0]), 
+            static_cast<unsigned char>(pixel[1]), 
+            static_cast<unsigned char>(pixel[2]), 
+            static_cast<unsigned char>(mmp_max_class) 
+        };
+    }
 }
 
 
@@ -510,23 +545,25 @@ int submain()
         cudaMemcpyHostToDevice
     );
 
-    cudaError_t err = cudaSuccess;
-
     init_constant_memory<DIM1, DIM2>(
         input_image_d.get(),
         input_image_h.width,
+        samples_h,
         samples_d.get(),
         n_classes
     );
 
-    if (err != cudaSuccess)
-    {
-        std::cerr << "ERROR: Failed to launch kernel (error "
-                  << cudaGetErrorString(err)
-                  << ")!"
-                  << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    CudaKernelChecker checker;
+
+    kernel<DIM1, DIM2><<<GRID_SIZE, BLOCK_SIZE>>>(
+        input_image_d.get(),
+        input_image_h.count(),
+        n_classes,
+        std::numeric_limits<float>::lowest(),
+        output_image_d.get()
+    );
+
+    checker.check("kernel");
 
     Image<uchar4> output_image_h = input_image_h;
 
@@ -548,7 +585,7 @@ int main()
     }
     catch (const std::exception &err)
     {
-        std::cout << "ERROR:" << err.what() << std::endl;
+        std::cout << "ERROR: " << err.what() << std::endl;
     }
 
     return 0;

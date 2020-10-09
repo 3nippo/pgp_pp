@@ -97,11 +97,9 @@ def read_data():
 
                 r, g, b = map(lambda x: int.from_bytes(x, 'little'), [r, g, b])
 
-                image_row.append((r, g, b))
+                image_row.append([r, g, b])
 
             image.append(image_row)
-
-    print('Entered')
 
     with open(stdin_name) as f:
         _ = f.readline()
@@ -124,23 +122,21 @@ def process_data(image, nc, npjs, h, w):
     cov_matrices = []
 
     for i in range(nc):
-        sum_vec = np.array((0, 0, 0)).reshape((-1, 1))
+        sum_vec = np.array((0, 0, 0), dtype=np.float32).reshape((-1, 1))
 
         npj = npjs[i]
 
         for j in range(1, len(npj), 2):
-            sum_vec += np.array(image[npj[j+1]][npj[j]]).reshape((-1, 1))
+            sum_vec += np.array(image[npj[j+1]][npj[j]], dtype=np.float32).reshape((-1, 1))
 
         sum_vec = sum_vec / npj[0]
 
-        print(sum_vec)
-
         avg.append(sum_vec)
 
-        cov_matrix = np.zeros((3, 3))
+        cov_matrix = np.zeros((3, 3), dtype=np.float32)
 
         for j in range(1, len(npj), 2):
-            pixel = np.array(image[npj[j+1]][npj[j]]).reshape((-1, 1))
+            pixel = np.array(image[npj[j+1]][npj[j]], dtype=np.float32).reshape((-1, 1))
             cov_matrix += (pixel - avg[-1]) @ (pixel - avg[-1]).T
 
         cov_matrix = cov_matrix / (npj[0] - 1)
@@ -152,7 +148,7 @@ def process_data(image, nc, npjs, h, w):
             pixel = np.array(image[i][j]).reshape((-1, 1))
 
             mmp = [
-                -((pixel - avg[i]).T @ np.linalg.inv(cov_matrices[i]) @ (pixel - avg[i]) + np.log(np.linalg.norm(cov_matrices[i], 1)))[0][0]
+                -((pixel - avg[i]).T @ np.linalg.inv(cov_matrices[i]) @ (pixel - avg[i]) + np.log(np.linalg.norm(cov_matrices[i], float('inf'))))[0][0]
                 for i in range(nc)
             ]
 
@@ -160,13 +156,11 @@ def process_data(image, nc, npjs, h, w):
 
             image[i][j].append(pixel_class)
 
-    return image
+    return image, h, w
 
 
-def write_data(result):
+def write_data(result, h, w):
     with open(python_output_name, 'wb') as f:
-        h, w, _ = result.shape
-
         f.write(int(w).to_bytes(4, 'little'))
         f.write(int(h).to_bytes(4, 'little'))
         # f.write(int(0).to_bytes(4, 'little'))
@@ -195,8 +189,8 @@ for t in range(tests_num):
 
     result = process_data(*args)
 
-    # write_data(result)
-
+    write_data(*result)
+    break
     # run C++ solution
     process = subprocess.Popen(
         cmd.split(),

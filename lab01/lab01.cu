@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <vector>
 
-#include "dummy_helper.hpp"
+#include "dummy_helper.cuh"
 
 #include <cuda_runtime.h>
 
