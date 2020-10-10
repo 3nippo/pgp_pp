@@ -11,11 +11,21 @@
 
 template<typename T>
 void check(T err, const char* const func, const char* const file, const int line) {
-    if (err != cudaSuccess) {
-        std::cerr << "ERROR: " << file << ":" << line << std::endl;
-        std::cerr << cudaGetErrorName(err) << " " << std::endl;
-        std::cerr << cudaGetErrorString(err) << " " << func << std::endl;
-        exit(1);
+    if (err != cudaSuccess) 
+    {
+        throw std::runtime_error(
+            std::string("ERROR: ") 
+            + file 
+            + ":" 
+            + std::to_string(line)
+            + "\n"
+            + cudaGetErrorName(err) 
+            + " " 
+            + "\n"
+            + cudaGetErrorString(err) 
+            + " " 
+            + func
+        );
     }
 }
 

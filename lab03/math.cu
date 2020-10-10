@@ -17,12 +17,8 @@ void sum_vectors(
         size_t dim2
 )
 {
-    for (size_t i = 0; i < dim1; ++i)
-        for (size_t j = 0; j < dim2; ++j)
-        {
-            size_t idx = i * dim2 + j;
-            result[idx] = a[idx] + b[idx];
-        }
+    for (size_t i = 0; i < dim1*dim2; ++i)
+        result[i] = a[i] + b[i];
 }
 
 
@@ -35,12 +31,8 @@ void sum_vectors_v(
         size_t dim2
 )
 {
-    for (size_t i = 0; i < dim1; ++i)
-        for (size_t j = 0; j < dim2; ++j)
-        {
-            size_t idx = i * dim2 + j;
-            result[idx] = a[idx] + b[idx];
-        }
+    for (size_t i = 0; i < dim1*dim2; ++i)
+        result[i] = a[i] + b[i];
 }
 
 

@@ -6,7 +6,8 @@
 
 #include "dummy_helper.cuh"
 #include "image.hpp"
-#include "math.cuh"
+#include "math.cu"
+#include <cmath>
 
 #define MAX_N_CLASSES 32
 #define REDUCTION_BLOCK_SIZE 256
@@ -26,7 +27,7 @@ class PixelReader
 public:
     template <typename PixelType>
     __host__ __device__
-    void read_pixel(float *v, PixelType pixel);
+    static void read_pixel(float *v, PixelType pixel);
 };
 
 
@@ -44,122 +45,67 @@ template<
     size_t dim1,
     size_t dim2
 >
-class InitAvg : public PixelReader
+class AvgBuilder
 {
 public:
     __host__ __device__
-    void operator()(
-            uchar4 *image, 
-            size_t width, 
-            uint32_t *samples,
-            size_t current_class,
-            float *sdata,
-            size_t pixel_sample_position,
-            size_t sample_end
-    )
+    void operator()(float *a, size_t current_class, float *result)
     {
-        if (pixel_sample_position + 1 + REDUCTION_BLOCK_SIZE < sample_end)
-        {
-            float a[dim1*dim2], b[dim1*dim2];
-            size_t position      = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position],
-                   next_position = samples[pixel_sample_position + 1 + REDUCTION_BLOCK_SIZE] * width + samples[pixel_sample_position + REDUCTION_BLOCK_SIZE];
-            
-            read_pixel(a, image[position]);
-            read_pixel(b, image[next_position]);
-            
-            sum_vectors(a, b, sdata, dim1, dim2);
-        }
-        else
-        {
-            float a[dim1*dim2];
-            size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
+        for (size_t i = 0; i < dim1 * dim2; ++i)
+            result[i] = a[i];
+    }
+};
 
-            read_pixel(a, image[position]);
-            
-            sum_vectors(a, sdata, sdata, dim1, dim2);
-        }
+
+template<
+    size_t dim1,
+    size_t dim2
+>
+class CovMatrixBuilder
+{
+public:
+    __host__ __device__
+    void operator()(float *a, size_t current_class, float *result)
+    {
+        float difference_with_avg[dim1*dim2];
+
+        sum_vectors(a, avg[current_class], difference_with_avg, dim1, dim2);
+
+        mul_vectors(
+            difference_with_avg, 
+            difference_with_avg,
+            result,
+            dim1,
+            dim2,
+            dim1
+        );
     }
 };
 
 
 template <
     size_t dim1,
-    size_t dim2
+    size_t dim2,
+    typename BuilderType
 >
-class InitCov : PixelReader
+class Init
 {
+private:
+    BuilderType builder;
+
 public:
     __host__ __device__
     void operator()(
-            uchar4 *image, 
-            size_t width, 
-            uint32_t *samples,
-            size_t current_class,
-            float *sdata,
-            size_t pixel_sample_position,
-            size_t sample_end
+        float *a,
+        size_t current_class,
+        float *sdata
     )
     {
-        if (pixel_sample_position + 1 + REDUCTION_BLOCK_SIZE < sample_end)
-        {
-            float a[dim1*dim2], b[dim1*dim2];
-            size_t position      = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position],
-                   next_position = samples[pixel_sample_position + 1 + REDUCTION_BLOCK_SIZE] * width + samples[pixel_sample_position + REDUCTION_BLOCK_SIZE];
+        float ma[dim1*dim2];
 
-            read_pixel(a, image[position]);
-            read_pixel(b, image[next_position]);
-
-            float a_difference_with_avg[dim1*dim2], b_difference_with_avg[dim1*dim2];
-
-            sum_vectors(a, avg[current_class], a_difference_with_avg, dim1, dim2);
-            sum_vectors(b, avg[current_class], b_difference_with_avg, dim1, dim2);
-
-            float ma[dim1*dim1], mb[dim1*dim1];
-
-            mul_vectors(
-                a_difference_with_avg, 
-                a_difference_with_avg,
-                ma,
-                dim1,
-                dim2,
-                dim1
-            );
-
-            mul_vectors(
-                b_difference_with_avg, 
-                b_difference_with_avg,
-                mb,
-                dim1,
-                dim2,
-                dim1
-            );
-            
-            sum_vectors(ma, mb, sdata, dim1, dim1);
-        }
-        else
-        {
-            float a[dim1*dim2];
-            size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
-
-            read_pixel(a, image[position]);
-            
-            float difference_with_avg[dim1*dim2];
-
-            sum_vectors(a, avg[current_class], difference_with_avg, dim1, dim2);
-
-            float m[dim1*dim1];
-
-            mul_vectors(
-                difference_with_avg, 
-                difference_with_avg,
-                m,
-                dim1,
-                dim2,
-                dim1
-            );
-
-            sum_vectors(m, sdata, sdata, dim1, dim1);
-        }
+        builder(a, current_class, ma);
+        
+        sum_vectors(sdata, ma, sdata, dim1, dim2);
     }
 };
 
@@ -203,46 +149,60 @@ void reduce(
 {
     __shared__ float sdata[REDUCTION_BLOCK_SIZE][dim1*dim2];
 
-    size_t tid = threadIdx.x;
+    const size_t tid = threadIdx.x;
     
     for (size_t i = 0; i < dim1 * dim2; ++i)
         sdata[tid][i] = 0;
-
-    size_t pixel_sample_position = start + 1 + blockIdx.x * REDUCTION_BLOCK_SIZE * 2 + 2 * tid;
-    size_t offset = REDUCTION_BLOCK_SIZE * 2 * REDUCTION_GRID_SIZE * 2;
     
-    size_t sample_end = start + 1 + 2 * samples[start];
+    const size_t combined_block_size = REDUCTION_BLOCK_SIZE * 2 * 2; // 2 for each pixel and 2 is the size of combination
+
+    size_t pixel_sample_position = start + 1 + blockIdx.x * combined_block_size + 2 * tid;
+    
+    const size_t grid_size = REDUCTION_BLOCK_SIZE * combined_block_size;
+    
+    const size_t sample_end = start + 1 + 2 * samples[start];
     while (pixel_sample_position < sample_end) 
     { 
-        init(
-            image,
-            width,
-            samples,
-            current_class,
-            sdata[tid],
-            pixel_sample_position,
-            sample_end
-        );          
+        float a[dim1*dim2];
+        size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
 
-        pixel_sample_position += offset;
+        PixelReader::read_pixel(a, image[position]);
+
+        init(
+            a,
+            current_class,
+            sdata[tid]
+        );
+
+        if (pixel_sample_position + combined_block_size / 2 < sample_end)
+        {
+            float b[dim1*dim2];
+            size_t next_position = samples[pixel_sample_position + 1 + combined_block_size / 2] * width + samples[pixel_sample_position + combined_block_size / 2];
+
+            PixelReader::read_pixel(b, image[next_position]);
+
+            init(
+                b,
+                current_class,
+                sdata[tid]
+            );
+        }
+
+        pixel_sample_position += grid_size;
     }
     
     __syncthreads();
     
-    if (REDUCTION_BLOCK_SIZE >= 512) { if (tid < 256) { sum_vectors(sdata[tid], sdata[tid + 256], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 256) { if (tid < 128) { sum_vectors(sdata[tid], sdata[tid + 128], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 128) { if (tid < 64)  { sum_vectors(sdata[tid], sdata[tid +  64], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 512) { if (tid < 256) { sum_vectors_v(sdata[tid], sdata[tid + 256], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 256) { if (tid < 128) { sum_vectors_v(sdata[tid], sdata[tid + 128], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 128) { if (tid < 64)  { sum_vectors_v(sdata[tid], sdata[tid +  64], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=  64) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +  32], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=  32) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +  16], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=  16) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   8], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=   8) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   4], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=   4) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   2], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >=   2) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   1], sdata[tid], dim1, dim2); } __syncthreads(); }
     
-    if (tid < 32)
-    {
-        if (REDUCTION_BLOCK_SIZE >= 64) { sum_vectors_v(sdata[tid], sdata[tid + 32], sdata[tid], dim1, dim2); }
-        if (REDUCTION_BLOCK_SIZE >= 32) { sum_vectors_v(sdata[tid], sdata[tid + 16], sdata[tid], dim1, dim2); }
-        if (REDUCTION_BLOCK_SIZE >= 16) { sum_vectors_v(sdata[tid], sdata[tid +  8], sdata[tid], dim1, dim2); }
-        if (REDUCTION_BLOCK_SIZE >= 8)  { sum_vectors_v(sdata[tid], sdata[tid +  4], sdata[tid], dim1, dim2); }
-        if (REDUCTION_BLOCK_SIZE >= 4)  { sum_vectors_v(sdata[tid], sdata[tid +  2], sdata[tid], dim1, dim2); }
-        if (REDUCTION_BLOCK_SIZE >= 2)  { sum_vectors_v(sdata[tid], sdata[tid +  1], sdata[tid], dim1, dim2); }
-    }
-
     if (tid == 0)
         deinit(sdata[0], reduction_buffer);
 }
@@ -289,7 +249,7 @@ template <size_t dim1, size_t dim2, bool is_avg>
 void init_completion_step(
     CudaMemory<float> &reduction_buffer_d, 
     std::vector<uint32_t> &samples,
-    size_t n_classes
+    const size_t n_classes
 )
 {
     const size_t reduction_buffer_offset = dim1 * dim2 * REDUCTION_GRID_SIZE;
@@ -379,10 +339,10 @@ template <
 >
 void init_constant_memory(
     PixelPointerType input_image,
-    size_t width,
+    const size_t width,
     std::vector<uint32_t> &samples_h,
     uint32_t *samples_d,
-    size_t n_classes
+    const size_t n_classes
 )
 {
     CudaMemory<float> reduction_buffer(dim1 * dim1 * REDUCTION_GRID_SIZE * MAX_N_CLASSES);
@@ -395,7 +355,7 @@ void init_constant_memory(
         samples_d,
         n_classes,
         reduction_buffer.get(),
-        InitAvg<dim1, dim2>()
+        Init<dim1, dim2, AvgBuilder<dim1, dim2>>()
     );
 
     checker.check("init_reduction_step<InitAvg>");
@@ -412,7 +372,7 @@ void init_constant_memory(
         samples_d,
         n_classes,
         reduction_buffer.get(),
-        InitCov<dim1, dim2>()
+        Init<dim1, dim1, CovMatrixBuilder<dim1, dim2>>()
     );
 
     checker.check("init_reduction_step<InitCov>");
@@ -433,10 +393,9 @@ template <
 __global__
 void kernel(
     PixelPointerType input_image,
-    size_t image_buffer_count,
-    size_t n_classes,
-    float float_lowest,
-    PixelPointerType output_image
+    const size_t image_buffer_count,
+    const size_t n_classes,
+    const float float_lowest
 )
 {
     size_t offset = blockDim.x * gridDim.x;
@@ -482,6 +441,8 @@ void kernel(
                 dim2
             );
 
+            result += std::log(cov_matrices_norms[current_class]);
+
             if (-result > mmp_max)
             {
                 mmp_max = -result;
@@ -489,7 +450,7 @@ void kernel(
             }
         }
 
-        output_image[i] = { 
+        input_image[i] = { 
             static_cast<unsigned char>(pixel[0]), 
             static_cast<unsigned char>(pixel[1]), 
             static_cast<unsigned char>(pixel[2]), 
@@ -537,8 +498,7 @@ int submain()
 
     Image<uchar4> input_image_h(input_name);
 
-    CudaMemory<uchar4>  input_image_d(input_image_h.count()), 
-                       output_image_d(input_image_h.count());
+    CudaMemory<uchar4>  input_image_d(input_image_h.count());
 
     input_image_d.memcpy(
         input_image_h.buffer.data(),
@@ -559,15 +519,14 @@ int submain()
         input_image_d.get(),
         input_image_h.count(),
         n_classes,
-        std::numeric_limits<float>::lowest(),
-        output_image_d.get()
-    );
+        std::numeric_limits<float>::lowest()
+     );
 
     checker.check("kernel");
 
     Image<uchar4> output_image_h = input_image_h;
 
-    output_image_d.memcpy(
+    input_image_d.memcpy(
         output_image_h.buffer.data(),
         cudaMemcpyDeviceToHost
     );
@@ -586,6 +545,7 @@ int main()
     catch (const std::exception &err)
     {
         std::cout << "ERROR: " << err.what() << std::endl;
+        return 1;
     }
 
     return 0;

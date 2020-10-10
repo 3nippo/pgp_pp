@@ -2,134 +2,104 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <limits>
 
-#include "dummy_helper.hpp"
 #include "image.hpp"
+#include "math.cu"
+#include <cmath>
 
+#define DIM1 3
+#define DIM2 1
 #define MAX_N_CLASSES 32
-#define BLOCK_SIZE_REDUCE 256
-#define GRID_SIZE_REDUCE 16
-
-__constant__ float avg_d[MAX_N_CLASSES * 3];
-__constant__ uint32_t cov_matrices_norms_d[MAX_N_CLASSES];
-__constant__ float reverse_cov_matrices_d[MAX_N_CLASSES * 9];
 
 
-float avg_h[MAX_N_CLASSES * 3];
-uint32_t cov_matrices_norms_h[MAX_N_CLASSES];
-float reverse_cov_matrices_h[MAX_N_CLASSES * 9];
+std::vector<std::vector<float>> avg;
+std::vector<float> cov_matrices_norms;
+std::vector<std::vector<float>> inverse_cov_matrices;
 
 
+class PixelReader
+{
+public:
+    template <typename PixelType>
+    __host__ __device__
+    static void read_pixel(float *v, PixelType pixel);
+};
+
+
+template <>
 __host__ __device__
-void sum_vectors(
-        float *a, 
-        float *b, 
-        float *result, 
-        size_t *dims
-)
+void PixelReader::read_pixel(float *v, uchar4 pixel)
 {
-    for (size_t i = 0; i < dims[0]; ++i)
-        for (size_t j = 0; j < dims[1]; ++j)
-        {
-            size_t idx = i * dims[1] + j;
-            result[idx] = a[idx] + b[idx];
-        }
+    v[0] = pixel.x;
+    v[1] = pixel.y;
+    v[2] = pixel.z;
 }
 
 
-__device__
-void sum_vectors_v(volatile float *a, volatile float *b, volatile float *result, size_t *dims)
-{
-    for (size_t i = 0; i < dims[0]; ++i)
-        for (size_t j = 0; j < dims[1]; ++j)
-        {
-            size_t idx = i * dims[1] + j;
-            result[idx] = a[idx] + b[idx];
-        }
-}
-
-
-__device__
-void mul_vectors(
-        float *a, 
-        float *b, 
-        float *result, 
-        size_t *dims
-)
-{
-    size_t a_dim1 = dims[0]; 
-    size_t a_dim2 = dims[1];
-    size_t b_dim1 = dims[2];
-    size_t b_dim2 = dims[3];
-
-    for (size_t i = 0; i < b_dim2; ++i)
-        for (size_t j = 0; j < a_dim1; ++j)
-        {
-            float current_value = 0;
-
-            for (size_t k = 0; k < a_dim2; ++k)
-                current_value += a[j * a_dim2 + k] * b[k * b_dim2 + i];
-
-            result[j * b_dim2 + i] = current_value;
-        }
-}
-
-
-class InitAvg
+template<
+    size_t dim1,
+    size_t dim2
+>
+class AvgBuilder
 {
 public:
     __host__ __device__
-    void operator()(
-            uchar4 *image, 
-            size_t width, 
-            uint32_t *samples,
-            float *sdata,
-            size_t i,
-            size_t n
-    )
+    void operator()(float *a, size_t current_class, float *result)
     {
-        size_t dims[2] = { 1, 3 };
-
-        if (i + 1 + BLOCK_SIZE_REDUCE < n)
-        {
-            float a[3], b[3];
-            size_t position      = samples[i + 1] * width + samples[i],
-                   next_position = samples[i + 1 + BLOCK_SIZE_REDUCE] * width + samples[i + BLOCK_SIZE_REDUCE];
-
-            a[0] = image[position].x;
-            a[1] = image[position].y;
-            a[2] = image[position].z;
-
-            b[0] = image[next_position].x;
-            b[1] = image[next_position].y;
-            b[2] = image[next_position].z;
-            
-            sum_vectors(a, b, sdata, dims);
-        }
-        else
-        {
-            float a[3];
-            size_t position = samples[i + 1] * width + samples[i];
-
-            a[0] = image[position].x;
-            a[1] = image[position].y;
-            a[2] = image[position].z;
-            
-            sum_vectors(a, sdata, sdata, dims);
-        }
+        for (size_t i = 0; i < dim1 * dim2; ++i)
+            result[i] = a[i];
     }
 };
 
 
-class DeinitAvg
+template<
+    size_t dim1,
+    size_t dim2
+>
+class CovMatrixBuilder
 {
 public:
-    __host__ __device__
-    void operator()(float *sdata, float *output)
+    void operator()(float *a, size_t current_class, float *result)
     {
-        output[blockIdx.x * 3 + 0] = sdata[0];
-        output[blockIdx.x * 3 + 1] = sdata[1];
-        output[blockIdx.x * 3 + 2] = sdata[2];
+        float difference_with_avg[dim1*dim2];
+
+        sum_vectors(a, avg[current_class].data(), difference_with_avg, dim1, dim2);
+
+        mul_vectors(
+            difference_with_avg, 
+            difference_with_avg,
+            result,
+            dim1,
+            dim2,
+            dim1
+        );
+    }
+};
+
+
+template <
+    size_t dim1,
+    size_t dim2,
+    typename BuilderType
+>
+class Init
+{
+private:
+    BuilderType builder;
+
+public:
+    void operator()(
+        float *a,
+        size_t current_class,
+        float *sdata
+    )
+    {
+        float ma[dim1*dim2];
+
+        builder(a, current_class, ma);
+        
+        sum_vectors(sdata, ma, sdata, dim1, dim2);
     }
 };
 
@@ -138,70 +108,238 @@ template <
     size_t dim1,
     size_t dim2,
     typename FInit,
-    typename FDeinit
+    typename PixelPointerType
 >
-__global__ 
-void reduce(
-        uchar4 *image, 
+void summate(
+        PixelPointerType image, 
         size_t width, 
-        uint32_t *samples,
+        std::vector<uint32_t> &samples,
+        size_t current_class,
         size_t start,
-        float *output,
         FInit init,
-        FDeinit deinit
+        std::vector<std::vector<float>> &sdata
 ) 
 {
-    __shared__ float sdata[BLOCK_SIZE_REDUCE][3];
-
-    size_t tid = threadIdx.x;
-
-    sdata[tid][0] = 0;
-    sdata[tid][1] = 0;
-    sdata[tid][2] = 0;
-
-    size_t i = start + 1 + blockIdx.x * BLOCK_SIZE_REDUCE * 2 + 2 * tid;
-    size_t offset = BLOCK_SIZE_REDUCE * 2 * GRID_SIZE_REDUCE * 2;
+    size_t pixel_sample_position = start + 1;
     
-    size_t n = start + 1 + 2 * samples[start];
-    while (i < n) 
+    const size_t sample_end = start + 1 + 2 * samples[start];
+    while (pixel_sample_position < sample_end) 
     { 
+        float a[dim1*dim2];
+        size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
+
+        PixelReader::read_pixel(a, image[position]);
+
         init(
-            image,
-            width,
-            samples,
-            sdata[tid],
-            i,
-            n
-        );          
+            a,
+            current_class,
+            sdata[current_class].data()
+        );
 
-        i += offset;
+        pixel_sample_position += 2;
     }
-    
-    __syncthreads();
-    
-    size_t dims[2] = { dim1, dim2 };
+}
 
-    if (BLOCK_SIZE_REDUCE >= 512) { if (tid < 256) { sum_vectors(sdata[tid], sdata[tid + 256], sdata[tid], dims); } __syncthreads(); }
-    if (BLOCK_SIZE_REDUCE >= 256) { if (tid < 128) { sum_vectors(sdata[tid], sdata[tid + 128], sdata[tid], dims); } __syncthreads(); }
-    if (BLOCK_SIZE_REDUCE >= 128) { if (tid < 64)  { sum_vectors(sdata[tid], sdata[tid +  64], sdata[tid], dims); } __syncthreads(); }
-    
-    if (tid < 32)
+
+template<
+    size_t dim1,
+    size_t dim2,
+    typename FInit,
+    typename PixelPointerType
+>
+void init_reduction_step(
+        PixelPointerType image,
+        size_t width,
+        std::vector<uint32_t> &samples,
+        size_t n_classes,
+        FInit init,
+        std::vector<std::vector<float>> &v
+) 
+{
+    size_t start = 0;
+
+    for (size_t current_class = 0; current_class < n_classes; ++current_class)
     {
-        if (BLOCK_SIZE_REDUCE >= 64) { sum_vectors_v(sdata[tid], sdata[tid + 32], sdata[tid], dims); }
-        if (BLOCK_SIZE_REDUCE >= 32) { sum_vectors_v(sdata[tid], sdata[tid + 16], sdata[tid], dims); }
-        if (BLOCK_SIZE_REDUCE >= 16) { sum_vectors_v(sdata[tid], sdata[tid +  8], sdata[tid], dims); }
-        if (BLOCK_SIZE_REDUCE >= 8)  { sum_vectors_v(sdata[tid], sdata[tid +  4], sdata[tid], dims); }
-        if (BLOCK_SIZE_REDUCE >= 4)  { sum_vectors_v(sdata[tid], sdata[tid +  2], sdata[tid], dims); }
-        if (BLOCK_SIZE_REDUCE >= 2)  { sum_vectors_v(sdata[tid], sdata[tid +  1], sdata[tid], dims); }
+        summate<dim1, dim2>(
+            image, 
+            width, 
+            samples,
+            current_class,
+            start,
+            init,
+            v
+        );
+
+        start += 1 + 2*samples[start];
+    }
+}
+
+
+template <size_t dim1, size_t dim2, bool is_avg>
+void init_completion_step(
+    std::vector<std::vector<float>> &constant_memory_h,
+    std::vector<uint32_t> &samples,
+    const size_t n_classes
+)
+{
+    for (
+            size_t current_class = 0,  sample_start = 0; 
+            current_class < n_classes; 
+            ++current_class, sample_start += 1 + 2 * samples[sample_start]
+        )
+    {
+        bool subtract = !is_avg;
+        for (size_t i = 0; i < dim1 * dim2; ++i)
+            constant_memory_h[current_class][i] /= (samples[sample_start] - subtract);
+        
+        if (is_avg)
+            revert_sign(constant_memory_h[current_class].data(), dim1, dim2);
     }
 
-    if (tid == 0)
-        deinit(sdata[0], output);
+    if (!is_avg)
+    {
+        for (size_t current_class = 0; current_class < n_classes; ++current_class)
+        {
+            cov_matrices_norms[current_class] = matrix_norm(
+                constant_memory_h[current_class].data(), 
+                dim1, 
+                dim2
+            );
+
+            inverse_matrix(
+                constant_memory_h[current_class].data(),
+                constant_memory_h[current_class].data(),
+                dim1
+            );
+        }
+    }
+}
+
+
+template <
+    size_t dim1,
+    size_t dim2,
+    typename PixelPointerType
+>
+void init_constant_memory(
+    PixelPointerType input_image,
+    const size_t width,
+    std::vector<uint32_t> &samples_h,
+    const size_t n_classes
+)
+{
+    init_reduction_step<dim1, dim2>(
+        input_image,
+        width,
+        samples_h,
+        n_classes,
+        Init<dim1, dim2, AvgBuilder<dim1, dim2>>(),
+        avg
+    );
+
+    init_completion_step<dim1, dim2, true>(
+        avg,
+        samples_h,
+        n_classes
+    );
+
+    init_reduction_step<dim1, dim1>(
+        input_image,
+        width,
+        samples_h,
+        n_classes,
+        Init<dim1, dim1, CovMatrixBuilder<dim1, dim2>>(),
+        inverse_cov_matrices
+    );
+
+    init_completion_step<dim1, dim1, false>(
+        inverse_cov_matrices,
+        samples_h,
+        n_classes
+    );
+}
+
+
+template <
+    size_t dim1, 
+    size_t dim2, 
+    typename PixelPointerType
+>
+void kernel(
+    PixelPointerType input_image,
+    const size_t image_buffer_count,
+    const size_t n_classes,
+    const float float_lowest
+)
+{
+    for (size_t i = 0; i < image_buffer_count; ++i)
+    {
+        float mmp_max = float_lowest;
+        size_t mmp_max_class;
+
+        PixelReader reader;
+        float pixel[dim1 * dim2];
+        
+        reader.read_pixel(pixel, input_image[i]);
+
+        for (size_t current_class = 0; current_class < n_classes; ++current_class)
+        {    
+            float difference_with_avg[dim1 * dim2];
+            sum_vectors(
+                pixel, 
+                avg[current_class].data(), 
+                difference_with_avg, 
+                dim1, 
+                dim2
+            );
+
+            float mul_buffer[dim2 * dim1];
+            mul_vectors(
+                difference_with_avg, 
+                inverse_cov_matrices[current_class].data(),
+                mul_buffer,
+                dim2,
+                dim1,
+                dim1
+            );
+
+            float result;
+            mul_vectors(
+                mul_buffer,
+                difference_with_avg,
+                &result,
+                dim2,
+                dim1,
+                dim2
+            );
+
+            result += std::log(cov_matrices_norms[current_class]);
+
+            if (-result > mmp_max)
+            {
+                mmp_max = -result;
+                mmp_max_class = current_class;
+            }
+        }
+
+        input_image[i] = { 
+            static_cast<unsigned char>(pixel[0]), 
+            static_cast<unsigned char>(pixel[1]), 
+            static_cast<unsigned char>(pixel[2]), 
+            static_cast<unsigned char>(mmp_max_class) 
+        };
+    }
 }
 
 
 int submain()
 {
+    avg = std::vector<std::vector<float>>(MAX_N_CLASSES, std::vector<float>(DIM1 * DIM2));
+    
+    cov_matrices_norms = std::vector<float>(MAX_N_CLASSES);
+    
+    inverse_cov_matrices = std::vector<std::vector<float>>(MAX_N_CLASSES, std::vector<float>(DIM1 * DIM1));
+
     std::string input_name,
                 output_name;
 
@@ -229,84 +367,25 @@ int submain()
         }
     }
     
-    CudaMemory<uint32_t> samples_d(samples_h.size());
-
-    samples_d.memcpy(
-        samples_h.data(),
-        cudaMemcpyHostToDevice
-    );
-
     Image<uchar4> input_image_h(input_name);
 
-    CudaMemory<uchar4> input_image_d(input_image_h.count());
-
-    input_image_d.memcpy(
+    init_constant_memory<DIM1, DIM2>(
         input_image_h.buffer.data(),
-        cudaMemcpyHostToDevice
+        input_image_h.width,
+        samples_h,
+        n_classes
     );
+    
+    kernel<DIM1, DIM2>(
+        input_image_h.buffer.data(),
+        input_image_h.count(),
+        n_classes,
+        std::numeric_limits<float>::lowest()
+     );
 
-    CudaMemory<float> reduced_buffer_d(GRID_SIZE_REDUCE * 9);
+    Image<uchar4> output_image_h = input_image_h;
 
-    size_t start = 0;
-
-    for (size_t c = 0; c < n_classes; ++c)
-    {
-        cudaError_t err = cudaSuccess;
-
-        reduce<1, 3><<<GRID_SIZE_REDUCE, BLOCK_SIZE_REDUCE>>>(
-            input_image_d.get(), 
-            input_image_h.width, 
-            samples_d.get(),
-            start, 
-            reduced_buffer_d.get(),
-            InitAvg(),
-            DeinitAvg()
-        );
-
-        err = cudaGetLastError();
-
-        if (err != cudaSuccess)
-        {
-            std::cerr << "ERROR: Failed to launch vector_max kernel (error "
-                      << cudaGetErrorString(err)
-                      << ")!"
-                      << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        
-        std::vector<float> reduced_buffer_h(GRID_SIZE_REDUCE * 9);
-        
-        reduced_buffer_d.memcpy(
-            reduced_buffer_h.data(), 
-            cudaMemcpyDeviceToHost
-        );
-
-        float r = 0,
-              g = 0,
-              b = 0;
-
-        size_t n_observations = samples_h[start];
-
-        for (size_t i = 0; i < GRID_SIZE_REDUCE; ++i)
-        {
-            r += reduced_buffer_h[i * 3 + 0] / n_observations;
-            g += reduced_buffer_h[i * 3 + 1] / n_observations;
-            b += reduced_buffer_h[i * 3 + 2] / n_observations;
-        }
-
-        avg_h[c * 3 + 0] = r;
-        avg_h[c * 3 + 1] = g;
-        avg_h[c * 3 + 2] = b;
-
-        std::cout << r 
-                  << ' '
-                  << g
-                  << ' '
-                  << b
-                  << std::endl;
-
-        start += samples_h[start]*2 + 1;
-    }
+    output_image_h.save(output_name);
     
     return 0;
 }
@@ -319,7 +398,8 @@ int main()
     }
     catch (const std::exception &err)
     {
-        std::cout << "ERROR:" << err.what() << std::endl;
+        std::cout << "ERROR: " << err.what() << std::endl;
+        return 1;
     }
 
     return 0;

@@ -32,9 +32,13 @@ def report_error(test_index, error_code, error):
 
 
 def generate_data():
-    w = np.random.randint(0, 4 * 10**8 // 10000)
-    h = 4*10**8 // w
+    # w = np.random.randint(0, 4 * 10**8 // 10000)
+    # h = 4*10**8 // w
 
+    w = 71
+    h = 71
+
+    # image = [2**32 - 1 for _ in range(w * h)]
     image = np.random.randint(0, 2**32, w * h)
 
     with open(input_name, 'wb') as f:
@@ -52,20 +56,16 @@ def generate_data():
 
         print(nc, file=f)
 
-        used_positions = set()
-
         for _ in range(nc):
-            npj = np.random.randint(0, 2**19 + 1)
+            npj = w*h
+            # npj = np.random.randint(0, min(w*h, 2**19) + 1)
 
             choosed_pixel_positions = []
 
             for _ in range(npj):
-                while (pixel_position := (np.random.randint(0, h), np.random.randint(0, w))) in used_positions:
-                    pass
+                pixel_position = (np.random.randint(0, h), np.random.randint(0, w))
 
                 choosed_pixel_positions.append(pixel_position)
-
-                used_positions.add(pixel_position)
 
             single_coordinates = []
 
@@ -77,141 +77,42 @@ def generate_data():
             print(sample_line, file=f)
 
 
-def read_data():
-    with open(input_name, 'rb') as f:
-        w = f.read(4)
-        h = f.read(4)
+generate_data()
 
-        w, h = map(lambda x: int.from_bytes(x, 'little'), [w, h])
+# for t in range(tests_num):
+#     if not dont_gen_data:
+#         generate_data()
 
-        image = []
+#     if gen_data:
+#         break
 
-        for i in range(h):
-            image_row = []
+#     args = read_data()
 
-            for j in range(w):
-                r = f.read(1)
-                g = f.read(1)
-                b = f.read(1)
-                _ = f.read(1)
+#     result = process_data(*args)
 
-                r, g, b = map(lambda x: int.from_bytes(x, 'little'), [r, g, b])
+#     write_data(*result)
+#     break
+#     # run C++ solution
+#     process = subprocess.Popen(
+#         cmd.split(),
+#         stderr=subprocess.PIPE
+#     )
 
-                image_row.append([r, g, b])
+#     _, error = process.communicate()
 
-            image.append(image_row)
+#     if process.returncode != 0 or error:
+#         report_error(t, process.returncode, error)
 
-    with open(stdin_name) as f:
-        _ = f.readline()
-        _ = f.readline()
+#     # cmp C++ solution with Python solution
+#     cmp_cmd = "cmp {} {}".format(output_name, python_output_name)
 
-        nc = int(f.readline().strip())
+#     process = subprocess.Popen(
+#         cmd.split(),
+#         stdout=subprocess.PIPE,
+#         stderr=subprocess.PIPE
+#     )
 
-        npjs = []
+#     output, error = process.communicate()
 
-        for _ in range(nc):
-            sample_line = map(int, f.readline().strip().split())
-
-            npjs.append(list(sample_line))
-
-    return image, nc, npjs, h, w
-
-
-def process_data(image, nc, npjs, h, w):
-    avg = []
-    cov_matrices = []
-
-    for i in range(nc):
-        sum_vec = np.array((0, 0, 0), dtype=np.float32).reshape((-1, 1))
-
-        npj = npjs[i]
-
-        for j in range(1, len(npj), 2):
-            sum_vec += np.array(image[npj[j+1]][npj[j]], dtype=np.float32).reshape((-1, 1))
-
-        sum_vec = sum_vec / npj[0]
-
-        avg.append(sum_vec)
-
-        cov_matrix = np.zeros((3, 3), dtype=np.float32)
-
-        for j in range(1, len(npj), 2):
-            pixel = np.array(image[npj[j+1]][npj[j]], dtype=np.float32).reshape((-1, 1))
-            cov_matrix += (pixel - avg[-1]) @ (pixel - avg[-1]).T
-
-        cov_matrix = cov_matrix / (npj[0] - 1)
-
-        cov_matrices.append(cov_matrix)
-
-    for i in range(h):
-        for j in range(w):
-            pixel = np.array(image[i][j]).reshape((-1, 1))
-
-            mmp = [
-                -((pixel - avg[i]).T @ np.linalg.inv(cov_matrices[i]) @ (pixel - avg[i]) + np.log(np.linalg.norm(cov_matrices[i], float('inf'))))[0][0]
-                for i in range(nc)
-            ]
-
-            pixel_class = np.argmax(mmp)
-
-            image[i][j].append(pixel_class)
-
-    return image, h, w
-
-
-def write_data(result, h, w):
-    with open(python_output_name, 'wb') as f:
-        f.write(int(w).to_bytes(4, 'little'))
-        f.write(int(h).to_bytes(4, 'little'))
-        # f.write(int(0).to_bytes(4, 'little'))
-
-        for i in range(h):
-            for j in range(w):
-                r, g, b, a = result[i][j]
-
-                f.write(int(r).to_bytes(1, 'little'))
-                f.write(int(g).to_bytes(1, 'little'))
-                f.write(int(b).to_bytes(1, 'little'))
-                f.write(int(a).to_bytes(1, 'little'))
-
-
-gen_data = 'generate' in sys.argv
-dont_gen_data = 'dont_generate' in sys.argv
-
-for t in range(tests_num):
-    if not dont_gen_data:
-        generate_data()
-
-    if gen_data:
-        break
-
-    args = read_data()
-
-    result = process_data(*args)
-
-    write_data(*result)
-    break
-    # run C++ solution
-    process = subprocess.Popen(
-        cmd.split(),
-        stderr=subprocess.PIPE
-    )
-
-    _, error = process.communicate()
-
-    if process.returncode != 0 or error:
-        report_error(t, process.returncode, error)
-
-    # cmp C++ solution with Python solution
-    cmp_cmd = "cmp {} {}".format(output_name, python_output_name)
-
-    process = subprocess.Popen(
-        cmd.split(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-
-    output, error = process.communicate()
-
-    if process.returncode != 0 or error or output:
-        report_error(t, process.returncode, error)
+#     if process.returncode != 0 or error or output:
+#         report_error(t, process.returncode, error)

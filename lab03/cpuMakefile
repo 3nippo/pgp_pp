@@ -1,9 +1,9 @@
 CC = nvcc
-FLAGS = -gencode arch=compute_50,code=sm_50 
+FLAGS = -gencode arch=compute_50,code=sm_50
 
-OBJECTS = lab03.o
+OBJECTS = lab03_cpu.o
 
-BIN = lab03
+BIN = lab03_cpu
 
 %.o: %.cu
 	$(CC) -x cu $(FLAGS) -I. -dc $< -o $@
