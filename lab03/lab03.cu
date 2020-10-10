@@ -133,6 +133,26 @@ public:
 };
 
 
+#define _loc(y, x) ((y) + (x) * dim1 * dim2)
+
+template<
+    size_t dim1,
+    size_t dim2
+>
+__device__
+void warp_reduce(volatile float *sdata, const size_t tid)
+{
+    if (REDUCTION_BLOCK_SIZE >=  64) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 32), _loc(sdata, tid), dim1, dim2);
+    if (REDUCTION_BLOCK_SIZE >=  32) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 16), _loc(sdata, tid), dim1, dim2);
+    if (REDUCTION_BLOCK_SIZE >=  16) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  8), _loc(sdata, tid), dim1, dim2);
+    if (REDUCTION_BLOCK_SIZE >=   8) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  4), _loc(sdata, tid), dim1, dim2);
+    if (REDUCTION_BLOCK_SIZE >=   4) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  2), _loc(sdata, tid), dim1, dim2);
+    if (REDUCTION_BLOCK_SIZE >=   2) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  1), _loc(sdata, tid), dim1, dim2);
+}
+
+
+#define _get(x, y, z) (x[(y) * dim1 * dim2 + (z)])
+
 template <
     size_t dim1,
     size_t dim2,
@@ -152,12 +172,12 @@ void reduce(
         FDeinit deinit
 ) 
 {
-    __shared__ float sdata[REDUCTION_BLOCK_SIZE][dim1*dim2];
+    __shared__ float sdata[REDUCTION_BLOCK_SIZE * dim1*dim2];
 
     const size_t tid = threadIdx.x;
     
     for (size_t i = 0; i < dim1 * dim2; ++i)
-        sdata[tid][i] = 0;
+        _get(sdata, tid, i) = 0;
 
     const size_t combined_block_size = REDUCTION_BLOCK_SIZE * 2; // 2 for each pixel and 2 is the size of combination
     
@@ -179,7 +199,7 @@ void reduce(
         init(
             a,
             current_class,
-            sdata[tid],
+            _loc(sdata, tid),
             samples[start]
         );
 
@@ -200,18 +220,15 @@ void reduce(
     
     __syncthreads();
     
-    if (REDUCTION_BLOCK_SIZE >= 512) { if (tid < 256) { sum_vectors_v(sdata[tid], sdata[tid + 256], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 256) { if (tid < 128) { sum_vectors_v(sdata[tid], sdata[tid + 128], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 128) { if (tid < 64)  { sum_vectors_v(sdata[tid], sdata[tid +  64], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=  64) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +  32], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=  32) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +  16], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=  16) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   8], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=   8) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   4], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=   4) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   2], sdata[tid], dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >=   2) { if (tid < 32)  { sum_vectors_v(sdata[tid], sdata[tid +   1], sdata[tid], dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 512) { if (tid < 256) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 256), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 256) { if (tid < 128) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 128), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (REDUCTION_BLOCK_SIZE >= 128) { if (tid <  64) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  64), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    
+    if (tid < 32)
+        warp_reduce<dim1, dim2>(sdata, tid);
     
     if (tid == 0)
-        deinit(sdata[0], reduction_buffer);
+        deinit(_loc(sdata, 0), reduction_buffer);
 }
 
 
