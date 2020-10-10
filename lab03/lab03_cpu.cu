@@ -81,6 +81,7 @@ public:
 template <
     size_t dim1,
     size_t dim2,
+    bool subtract,
     typename BuilderType
 >
 class Init
@@ -92,12 +93,16 @@ public:
     void operator()(
         float *a,
         size_t current_class,
-        float *sdata
+        float *sdata,
+        size_t size
     )
     {
         float ma[dim1*dim2];
 
         builder(a, current_class, ma);
+
+        for (size_t i = 0; i < dim1*dim2; ++i)
+            ma[i] /= (size - subtract);
         
         sum_vectors(sdata, ma, sdata, dim1, dim2);
     }
@@ -120,10 +125,18 @@ void summate(
         std::vector<std::vector<float>> &sdata
 ) 
 {
-    size_t pixel_sample_position = start + 1;
-    
     const size_t sample_end = start + 1 + 2 * samples[start];
-    while (pixel_sample_position < sample_end) 
+    
+    std::vector<std::vector<float>> fake_data(256, std::vector<float>(dim1*dim2));
+
+    for (size_t blockidx = 0; blockidx < 16; ++blockidx)
+    {
+    for (size_t tid = 0; tid < 256; ++tid)
+    for (
+            size_t pixel_sample_position = start + 1 + blockidx * 256 + 2*tid; 
+            pixel_sample_position < sample_end; 
+            pixel_sample_position += 256 * 2 * 16
+        ) 
     { 
         float a[dim1*dim2];
         size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
@@ -133,10 +146,20 @@ void summate(
         init(
             a,
             current_class,
-            sdata[current_class].data()
+            fake_data[tid].data(),
+            samples[start]
+        );
+    }
+    for (size_t i = 0; i < fake_data.size(); ++i)
+        sum_vectors(
+            fake_data[i].data(),
+            sdata[current_class].data(),
+            sdata[current_class].data(),
+            dim1,
+            dim2
         );
 
-        pixel_sample_position += 2;
+    fake_data.assign(fake_data.size(), std::vector<float>(dim1*dim2));
     }
 }
 
@@ -188,9 +211,9 @@ void init_completion_step(
             ++current_class, sample_start += 1 + 2 * samples[sample_start]
         )
     {
-        bool subtract = !is_avg;
-        for (size_t i = 0; i < dim1 * dim2; ++i)
-            constant_memory_h[current_class][i] /= (samples[sample_start] - subtract);
+        /* bool subtract = !is_avg; */
+        /* for (size_t i = 0; i < dim1 * dim2; ++i) */
+        /*     constant_memory_h[current_class][i] /= (samples[sample_start] - subtract); */
         
         if (is_avg)
             revert_sign(constant_memory_h[current_class].data(), dim1, dim2);
@@ -233,7 +256,7 @@ void init_constant_memory(
         width,
         samples_h,
         n_classes,
-        Init<dim1, dim2, AvgBuilder<dim1, dim2>>(),
+        Init<dim1, dim2, false, AvgBuilder<dim1, dim2>>(),
         avg
     );
 
@@ -248,7 +271,7 @@ void init_constant_memory(
         width,
         samples_h,
         n_classes,
-        Init<dim1, dim1, CovMatrixBuilder<dim1, dim2>>(),
+        Init<dim1, dim1, true, CovMatrixBuilder<dim1, dim2>>(),
         inverse_cov_matrices
     );
 
@@ -375,13 +398,27 @@ int submain()
         samples_h,
         n_classes
     );
+
+    for (size_t i = 0; i < n_classes; ++i)
+    {
+        for (size_t j = 0; j < DIM1*DIM2; ++j)
+            std::cout << avg[i][j] << ' ';
+        std::cout << std::endl;
+    }
+
+    for (size_t i = 0; i < n_classes; ++i)
+    {
+        for (size_t j = 0; j < DIM1*DIM1; ++j)
+            std::cout << inverse_cov_matrices[i][j] << ' ';
+        std::cout << std::endl;
+    }
     
-    kernel<DIM1, DIM2>(
-        input_image_h.buffer.data(),
-        input_image_h.count(),
-        n_classes,
-        std::numeric_limits<float>::lowest()
-     );
+    /* kernel<DIM1, DIM2>( */
+    /*     input_image_h.buffer.data(), */
+    /*     input_image_h.count(), */
+    /*     n_classes, */
+    /*     std::numeric_limits<float>::lowest() */
+    /*  ); */
 
     Image<uchar4> output_image_h = input_image_h;
 

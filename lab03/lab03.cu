@@ -86,6 +86,7 @@ public:
 template <
     size_t dim1,
     size_t dim2,
+    bool subtract,
     typename BuilderType
 >
 class Init
@@ -98,12 +99,16 @@ public:
     void operator()(
         float *a,
         size_t current_class,
-        float *sdata
+        float *sdata,
+        size_t size
     )
     {
         float ma[dim1*dim2];
 
         builder(a, current_class, ma);
+
+        for (size_t i = 0; i < dim1*dim2; ++i)
+            ma[i] /= (size - subtract);
         
         sum_vectors(sdata, ma, sdata, dim1, dim2);
     }
@@ -153,15 +158,18 @@ void reduce(
     
     for (size_t i = 0; i < dim1 * dim2; ++i)
         sdata[tid][i] = 0;
-    
-    const size_t combined_block_size = REDUCTION_BLOCK_SIZE * 2 * 2; // 2 for each pixel and 2 is the size of combination
 
-    size_t pixel_sample_position = start + 1 + blockIdx.x * combined_block_size + 2 * tid;
+    const size_t combined_block_size = REDUCTION_BLOCK_SIZE * 2; // 2 for each pixel and 2 is the size of combination
     
-    const size_t grid_size = REDUCTION_BLOCK_SIZE * combined_block_size;
+    const size_t grid_size = REDUCTION_GRID_SIZE * combined_block_size;
     
     const size_t sample_end = start + 1 + 2 * samples[start];
-    while (pixel_sample_position < sample_end) 
+
+    for (
+            size_t pixel_sample_position = start + 1 + blockIdx.x * combined_block_size + 2 * tid; 
+            pixel_sample_position < sample_end; 
+            pixel_sample_position += grid_size
+        ) 
     { 
         float a[dim1*dim2];
         size_t position = samples[pixel_sample_position + 1] * width + samples[pixel_sample_position];
@@ -171,24 +179,23 @@ void reduce(
         init(
             a,
             current_class,
-            sdata[tid]
+            sdata[tid],
+            samples[start]
         );
 
-        if (pixel_sample_position + combined_block_size / 2 < sample_end)
-        {
-            float b[dim1*dim2];
-            size_t next_position = samples[pixel_sample_position + 1 + combined_block_size / 2] * width + samples[pixel_sample_position + combined_block_size / 2];
+        /* if (pixel_sample_position + combined_block_size / 2 < sample_end) */
+        /* { */
+        /*     float b[dim1*dim2]; */
+        /*     size_t next_position = samples[pixel_sample_position + 1 + combined_block_size / 2] * width + samples[pixel_sample_position + combined_block_size / 2]; */
 
-            PixelReader::read_pixel(b, image[next_position]);
+        /*     PixelReader::read_pixel(b, image[next_position]); */
 
-            init(
-                b,
-                current_class,
-                sdata[tid]
-            );
-        }
-
-        pixel_sample_position += grid_size;
+        /*     init( */
+        /*         b, */
+        /*         current_class, */
+        /*         sdata[tid] */
+        /*     ); */
+        /* } */
     }
     
     __syncthreads();
@@ -280,12 +287,23 @@ void init_completion_step(
                 dim2
             );
         
-        bool subtract = !is_avg;
-        for (size_t i = 0; i < dim1 * dim2; ++i)
-            constant_memory_h[current_class][i] /= (samples[sample_start] - subtract);
+        /* bool subtract = !is_avg; */
+        /* for (size_t i = 0; i < dim1 * dim2; ++i) */
+        /*     constant_memory_h[current_class][i] /= (samples[sample_start] - subtract); */
         
         if (is_avg)
             revert_sign(constant_memory_h[current_class], dim1, dim2);
+    }
+
+    if (avg)
+    {
+        for (size_t i = 0; i < n_classes; ++i)
+        {
+            for (size_t j = 0; j < dim1*dim2; ++j)
+                std::cout << constant_memory_h[i][j] << ' ';
+            std::cout << std::endl;
+        }
+                
     }
 
     if (!is_avg)
@@ -305,6 +323,13 @@ void init_completion_step(
                 constant_memory_h[current_class],
                 dim1
             );
+        }
+
+        for (size_t i = 0; i < n_classes; ++i)
+        {
+            for (size_t j = 0; j < dim1*dim2; ++j)
+                std::cout << constant_memory_h[i][j] << ' ';
+            std::cout << std::endl;
         }
 
         checkCudaErrors(cudaMemcpyToSymbol(
@@ -355,7 +380,7 @@ void init_constant_memory(
         samples_d,
         n_classes,
         reduction_buffer.get(),
-        Init<dim1, dim2, AvgBuilder<dim1, dim2>>()
+        Init<dim1, dim2, false, AvgBuilder<dim1, dim2>>()
     );
 
     checker.check("init_reduction_step<InitAvg>");
@@ -372,7 +397,7 @@ void init_constant_memory(
         samples_d,
         n_classes,
         reduction_buffer.get(),
-        Init<dim1, dim1, CovMatrixBuilder<dim1, dim2>>()
+        Init<dim1, dim1, true, CovMatrixBuilder<dim1, dim2>>()
     );
 
     checker.check("init_reduction_step<InitCov>");

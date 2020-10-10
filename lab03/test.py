@@ -35,8 +35,8 @@ def generate_data():
     # w = np.random.randint(0, 4 * 10**8 // 10000)
     # h = 4*10**8 // w
 
-    w = 71
-    h = 71
+    w = 2*10**4
+    h = 2*10**4
 
     # image = [2**32 - 1 for _ in range(w * h)]
     image = np.random.randint(0, 2**32, w * h)
@@ -57,8 +57,8 @@ def generate_data():
         print(nc, file=f)
 
         for _ in range(nc):
-            npj = w*h
-            # npj = np.random.randint(0, min(w*h, 2**19) + 1)
+            # npj = w*h
+            npj = 2**19
 
             choosed_pixel_positions = []
 
