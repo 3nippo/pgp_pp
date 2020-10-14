@@ -5,6 +5,9 @@
 #include "dummy_helper.cuh"
 #include "image.hpp"
 
+#define GRID_SIZE 32
+#define BLOCK_SIZE 32
+
 
 __device__
 float to_grayscale(uchar4 pixel)
@@ -84,11 +87,18 @@ int submain()
     
     CudaMemory<uchar4> output_image_buffer_d(input_image.count());
 
-    kernel<<<dim3(4, 4), dim3(16, 16)>>>(
+    CudaTimer timer;
+
+    timer.start();
+
+    kernel<<<dim3(GRID_SIZE, GRID_SIZE), dim3(BLOCK_SIZE, BLOCK_SIZE)>>>(
         output_image_buffer_d.get(), 
         input_image.width, 
         input_image.height
     );
+
+    timer.stop();
+    timer.print_time();
 
     Image<uchar4> output_image = input_image;
 

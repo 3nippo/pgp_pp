@@ -7,6 +7,7 @@
 #include "image.hpp"
 #include "math.cu"
 #include <cmath>
+#include "dummy_helper.cuh"
 
 #define DIM1 3
 #define DIM2 1
@@ -399,26 +400,33 @@ int submain()
         n_classes
     );
 
-    for (size_t i = 0; i < n_classes; ++i)
-    {
-        for (size_t j = 0; j < DIM1*DIM2; ++j)
-            std::cout << avg[i][j] << ' ';
-        std::cout << std::endl;
-    }
+    /* for (size_t i = 0; i < n_classes; ++i) */
+    /* { */
+    /*     for (size_t j = 0; j < DIM1*DIM2; ++j) */
+    /*         std::cout << avg[i][j] << ' '; */
+    /*     std::cout << std::endl; */
+    /* } */
 
-    for (size_t i = 0; i < n_classes; ++i)
-    {
-        for (size_t j = 0; j < DIM1*DIM1; ++j)
-            std::cout << inverse_cov_matrices[i][j] << ' ';
-        std::cout << std::endl;
-    }
+    /* for (size_t i = 0; i < n_classes; ++i) */
+    /* { */
+    /*     for (size_t j = 0; j < DIM1*DIM1; ++j) */
+    /*         std::cout << inverse_cov_matrices[i][j] << ' '; */
+    /*     std::cout << std::endl; */
+    /* } */
     
-    /* kernel<DIM1, DIM2>( */
-    /*     input_image_h.buffer.data(), */
-    /*     input_image_h.count(), */
-    /*     n_classes, */
-    /*     std::numeric_limits<float>::lowest() */
-    /*  ); */
+    CudaTimer timer;
+
+    timer.start();
+    
+    kernel<DIM1, DIM2>(
+        input_image_h.buffer.data(),
+        input_image_h.count(),
+        n_classes,
+        std::numeric_limits<float>::lowest()
+    );
+
+    timer.stop();
+    timer.print_time();
 
     Image<uchar4> output_image_h = input_image_h;
 

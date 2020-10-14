@@ -6,4 +6,4 @@ all:
 	$(CC) $(FLAGS) -o $(BIN) $(SOURCES)
 
 clean:
-	rm -rf $(BIN) *.data
+	rm -rf $(BIN) *.data input

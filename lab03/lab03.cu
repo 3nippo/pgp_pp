@@ -10,10 +10,8 @@
 #include <cmath>
 
 #define MAX_N_CLASSES 32
-#define REDUCTION_BLOCK_SIZE 256
-#define REDUCTION_GRID_SIZE 16
-#define BLOCK_SIZE 256
-#define GRID_SIZE 16
+#define BLOCK_SIZE 1024
+#define GRID_SIZE 1024
 #define DIM1 3
 #define DIM2 1
 
@@ -142,12 +140,12 @@ template<
 __device__
 void warp_reduce(volatile float *sdata, const size_t tid)
 {
-    if (REDUCTION_BLOCK_SIZE >=  64) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 32), _loc(sdata, tid), dim1, dim2);
-    if (REDUCTION_BLOCK_SIZE >=  32) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 16), _loc(sdata, tid), dim1, dim2);
-    if (REDUCTION_BLOCK_SIZE >=  16) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  8), _loc(sdata, tid), dim1, dim2);
-    if (REDUCTION_BLOCK_SIZE >=   8) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  4), _loc(sdata, tid), dim1, dim2);
-    if (REDUCTION_BLOCK_SIZE >=   4) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  2), _loc(sdata, tid), dim1, dim2);
-    if (REDUCTION_BLOCK_SIZE >=   2) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  1), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=  64) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 32), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=  32) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 16), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=  16) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  8), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=   8) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  4), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=   4) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  2), _loc(sdata, tid), dim1, dim2);
+    if (BLOCK_SIZE >=   2) sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  1), _loc(sdata, tid), dim1, dim2);
 }
 
 
@@ -172,16 +170,16 @@ void reduce(
         FDeinit deinit
 ) 
 {
-    __shared__ float sdata[REDUCTION_BLOCK_SIZE * dim1*dim2];
+    __shared__ float sdata[BLOCK_SIZE * dim1*dim2];
 
     const size_t tid = threadIdx.x;
     
     for (size_t i = 0; i < dim1 * dim2; ++i)
         _get(sdata, tid, i) = 0;
 
-    const size_t combined_block_size = REDUCTION_BLOCK_SIZE * 2; // 2 for each pixel and 2 is the size of combination
+    const size_t combined_block_size = BLOCK_SIZE * 2; // 2 for each pixel and 2 is the size of combination
     
-    const size_t grid_size = REDUCTION_GRID_SIZE * combined_block_size;
+    const size_t grid_size = GRID_SIZE * combined_block_size;
     
     const size_t sample_end = start + 1 + 2 * samples[start];
 
@@ -220,12 +218,16 @@ void reduce(
     
     __syncthreads();
     
-    if (REDUCTION_BLOCK_SIZE >= 512) { if (tid < 256) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 256), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 256) { if (tid < 128) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 128), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
-    if (REDUCTION_BLOCK_SIZE >= 128) { if (tid <  64) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  64), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
-    
-    if (tid < 32)
-        warp_reduce<dim1, dim2>(sdata, tid);
+    if (BLOCK_SIZE >= 1024) { if (tid < 512) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 512), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=  512) { if (tid < 256) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 256), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=  256) { if (tid < 128) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid + 128), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=  128) { if (tid <  64) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  64), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=   64) { if (tid <  32) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  32), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=   32) { if (tid <  16) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +  16), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=   16) { if (tid <   8) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +   8), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=    8) { if (tid <   4) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +   4), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=    4) { if (tid <   2) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +   2), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
+    if (BLOCK_SIZE >=    2) { if (tid <   1) { sum_vectors_v(_loc(sdata, tid), _loc(sdata, tid +   1), _loc(sdata, tid), dim1, dim2); } __syncthreads(); }
     
     if (tid == 0)
         deinit(_loc(sdata, 0), reduction_buffer);
@@ -249,7 +251,7 @@ void init_reduction_step(
 ) 
 {
     size_t start = 0;
-    size_t reduction_buffer_offset = dim1 * dim2 * REDUCTION_GRID_SIZE;
+    size_t reduction_buffer_offset = dim1 * dim2 * GRID_SIZE;
 
     for (size_t current_class = 0; current_class < n_classes; ++current_class)
     {
@@ -276,7 +278,7 @@ void init_completion_step(
     const size_t n_classes
 )
 {
-    const size_t reduction_buffer_offset = dim1 * dim2 * REDUCTION_GRID_SIZE;
+    const size_t reduction_buffer_offset = dim1 * dim2 * GRID_SIZE;
     
     float constant_memory_h[MAX_N_CLASSES][dim1 * dim2];
     std::vector<float> reduction_buffer_h(reduction_buffer_d.count);
@@ -312,16 +314,16 @@ void init_completion_step(
             revert_sign(constant_memory_h[current_class], dim1, dim2);
     }
 
-    if (avg)
-    {
-        for (size_t i = 0; i < n_classes; ++i)
-        {
-            for (size_t j = 0; j < dim1*dim2; ++j)
-                std::cout << constant_memory_h[i][j] << ' ';
-            std::cout << std::endl;
-        }
+    /* if (avg) */
+    /* { */
+    /*     for (size_t i = 0; i < n_classes; ++i) */
+    /*     { */
+    /*         for (size_t j = 0; j < dim1*dim2; ++j) */
+    /*             std::cout << constant_memory_h[i][j] << ' '; */
+    /*         std::cout << std::endl; */
+    /*     } */
                 
-    }
+    /* } */
 
     if (!is_avg)
     {
@@ -342,12 +344,12 @@ void init_completion_step(
             );
         }
 
-        for (size_t i = 0; i < n_classes; ++i)
-        {
-            for (size_t j = 0; j < dim1*dim2; ++j)
-                std::cout << constant_memory_h[i][j] << ' ';
-            std::cout << std::endl;
-        }
+        /* for (size_t i = 0; i < n_classes; ++i) */
+        /* { */
+        /*     for (size_t j = 0; j < dim1*dim2; ++j) */
+        /*         std::cout << constant_memory_h[i][j] << ' '; */
+        /*     std::cout << std::endl; */
+        /* } */
 
         checkCudaErrors(cudaMemcpyToSymbol(
             cov_matrices_norms,
@@ -387,11 +389,11 @@ void init_constant_memory(
     const size_t n_classes
 )
 {
-    CudaMemory<float> reduction_buffer(dim1 * dim1 * REDUCTION_GRID_SIZE * MAX_N_CLASSES);
+    CudaMemory<float> reduction_buffer(dim1 * dim1 * GRID_SIZE * MAX_N_CLASSES);
     
     CudaKernelChecker checker;
 
-    init_reduction_step<dim1, dim2><<<REDUCTION_GRID_SIZE, REDUCTION_BLOCK_SIZE>>>(
+    init_reduction_step<dim1, dim2><<<GRID_SIZE, BLOCK_SIZE>>>(
         input_image,
         width,
         samples_d,
@@ -408,7 +410,7 @@ void init_constant_memory(
         n_classes
     );
 
-    init_reduction_step<dim1, dim1><<<REDUCTION_GRID_SIZE, REDUCTION_BLOCK_SIZE>>>(
+    init_reduction_step<dim1, dim1><<<GRID_SIZE, BLOCK_SIZE>>>(
         input_image,
         width,
         samples_d,
@@ -557,12 +559,19 @@ int submain()
 
     CudaKernelChecker checker;
 
+    CudaTimer timer;
+
+    timer.start();
+
     kernel<DIM1, DIM2><<<GRID_SIZE, BLOCK_SIZE>>>(
         input_image_d.get(),
         input_image_h.count(),
         n_classes,
         std::numeric_limits<float>::lowest()
      );
+
+    timer.stop();
+    timer.print_time();
 
     checker.check("kernel");
 

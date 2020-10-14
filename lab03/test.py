@@ -1,40 +1,18 @@
-import sys
-import math
 import numpy as np
+import sys
 import subprocess
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-tests_num = 1
+
+lab_num = 3
 input_name = 'in.data'
-stdin_name = 'input'
 output_name = 'out.data'
-python_output_name = 'py_out.data'
-
-cmd = './lab02 < input'
+stdin_name = 'input'
 
 
-def report_error(test_index, error_code, error):
-    test_index += 1
-
-    print("Test #{}".format(test_index))
-    print("Input is in{}.data".format(test_index))
-    print("Error code: {}".format(error_code))
-    print("Error message:")
-    print(error.decode().strip())
-    print()
-
-    cmd = "cp in.data in{}.data".format(test_index)
-    process = subprocess.Popen(cmd.split())
-    process.wait()
-
-    cmd = "cp input input{}".format(test_index)
-    process = subprocess.Popen(cmd.split())
-    process.wait()
-
-
-def generate_data():
-    # w = np.random.randint(0, 4 * 10**8 // 10000)
-    # h = 4*10**8 // w
-
+def gen_data():
     w = 2*10**4
     h = 2*10**4
 
@@ -77,42 +55,94 @@ def generate_data():
             print(sample_line, file=f)
 
 
-generate_data()
+gen_data()
 
-# for t in range(tests_num):
-#     if not dont_gen_data:
-#         generate_data()
 
-#     if gen_data:
-#         break
+def run_cpu():
+    with open("input") as f:
+        content = f.read()
 
-#     args = read_data()
+    cpu_process = subprocess.Popen(
+        "./lab0{}_cpu".format(lab_num).split(),
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE
+    )
 
-#     result = process_data(*args)
+    output_cpu, _ = cpu_process.communicate(input=content.encode())
 
-#     write_data(*result)
-#     break
-#     # run C++ solution
-#     process = subprocess.Popen(
-#         cmd.split(),
-#         stderr=subprocess.PIPE
-#     )
+    print("CPU {}ms".format(output_cpu.decode().split()[1]))
 
-#     _, error = process.communicate()
 
-#     if process.returncode != 0 or error:
-#         report_error(t, process.returncode, error)
+def benchmark():
+    def set_grid_and_block_sizes(grid_size, block_size):
+        source_name = "lab0{}.cu".format(lab_num)
 
-#     # cmp C++ solution with Python solution
-#     cmp_cmd = "cmp {} {}".format(output_name, python_output_name)
+        with open(source_name) as f:
+            lines = f.readlines()
 
-#     process = subprocess.Popen(
-#         cmd.split(),
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE
-#     )
+        with open(source_name, 'w') as f:
+            for line in lines:
+                if "#define GRID_SIZE" in line:
+                    f.write("#define GRID_SIZE {}\n".format(grid_size))
+                elif "#define BLOCK_SIZE" in line:
+                    f.write("#define BLOCK_SIZE {}\n".format(block_size))
+                else:
+                    f.write(line)
 
-#     output, error = process.communicate()
+    MAX_GRID_SIZE = 1024
+    MAX_BLOCK_SIZE = 1024
+    BLOCK_START = 32
+    grid_size = 1
 
-#     if process.returncode != 0 or error or output:
-#         report_error(t, process.returncode, error)
+    rows = []
+
+    while grid_size <= MAX_GRID_SIZE:
+        block_size = BLOCK_START
+        row = []
+
+        while block_size <= MAX_BLOCK_SIZE:
+            set_grid_and_block_sizes(grid_size, block_size)
+
+            compilation_process = subprocess.Popen(
+                "make".split()
+            )
+
+            compilation_process.wait()
+
+            with open('input') as f:
+                content = f.read()
+
+            gpu_process = subprocess.Popen(
+                "./lab0{} < input | grep time:".format(lab_num).split(),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+
+            output_gpu, _ = gpu_process.communicate(input=content.encode())
+
+            row.append(float(output_gpu.decode().split()[1]))
+
+            block_size *= 2
+
+        rows.append(row)
+
+        grid_size *= 2
+
+    df = pd.DataFrame(
+        rows,
+        index=[str(2**i) for i in range(11)],
+        columns=[str(2**i) for i in range(5, 11)]
+    )
+
+    plt.figure(figsize=(10, 10))
+
+    sns.heatmap(df, cmap="YlGnBu", fmt='4f', annot=True, cbar_kws={'label': 'Время, мс'})
+
+    plt.xlabel("Количество потоков в блоке")
+    plt.ylabel("Количество блоков")
+
+    plt.savefig('lab0{}.pdf'.format(lab_num))
+
+
+run_cpu()
+benchmark()

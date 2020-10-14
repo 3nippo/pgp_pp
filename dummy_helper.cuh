@@ -180,3 +180,43 @@ public:
         }
     }
 };
+
+
+class CudaTimer
+{
+private:
+    cudaEvent_t event_start, event_stop;
+public:
+    CudaTimer()
+    {
+        checkCudaErrors(cudaEventCreate(&event_start));
+        checkCudaErrors(cudaEventCreate(&event_stop));
+    }
+
+    void start()
+    {
+        checkCudaErrors(cudaEventRecord(event_start));
+    }
+
+    void stop()
+    {
+        checkCudaErrors(cudaEventRecord(event_stop));
+        checkCudaErrors(cudaEventSynchronize(event_stop));
+    }
+    
+    float get_time()
+    {
+        float ms;
+
+        checkCudaErrors(cudaEventElapsedTime(&ms, event_start, event_stop));
+
+        return ms;
+    }
+
+    void print_time()
+    {
+        float ms_time = get_time();
+
+        std::cout << "time: " << ms_time << std::endl;
+    }
+};

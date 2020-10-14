@@ -1,9 +1,9 @@
 CC = nvcc
 FLAGS = -gencode arch=compute_50,code=sm_50
-SOURCES = lab01.cu
-BIN = lab01
+SOURCES = lab02_cpu.cu
+BIN = lab02_cpu
 all:
 	$(CC) $(FLAGS) -o $(BIN) $(SOURCES)
 
 clean:
-	rm -rf $(BIN) input output
+	rm -rf $(BIN) *.data input

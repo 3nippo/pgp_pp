@@ -6,6 +6,8 @@
 
 #include <cuda_runtime.h>
 
+#define BLOCK_SIZE 1024
+#define GRID_SIZE 1024
 
 __global__
 void vector_max(const double *a, const double *b, double *result, size_t n)
@@ -40,18 +42,21 @@ int main()
     a_d.memcpy(a_h.data(), cudaMemcpyHostToDevice);
     b_d.memcpy(b_h.data(), cudaMemcpyHostToDevice);
 
-    size_t threads_per_block = 256,
-           blocks_per_grid = 16;
-           /* blocks_per_grid = (n + threads_per_block - 1) / threads_per_block; */
-
     cudaError_t err = cudaSuccess;
 
-    vector_max<<<blocks_per_grid, threads_per_block>>>(
+    CudaTimer timer;
+
+    timer.start();
+
+    vector_max<<<GRID_SIZE, BLOCK_SIZE>>>(
         a_d.get(),
         b_d.get(),
         result_d.get(),
         n
     );
+
+    timer.stop();
+    timer.print_time();
 
     err = cudaGetLastError();
 
