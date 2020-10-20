@@ -314,16 +314,16 @@ void init_completion_step(
             revert_sign(constant_memory_h[current_class], dim1, dim2);
     }
 
-    /* if (avg) */
-    /* { */
-    /*     for (size_t i = 0; i < n_classes; ++i) */
-    /*     { */
-    /*         for (size_t j = 0; j < dim1*dim2; ++j) */
-    /*             std::cout << constant_memory_h[i][j] << ' '; */
-    /*         std::cout << std::endl; */
-    /*     } */
+    if (avg)
+    {
+        for (size_t i = 0; i < n_classes; ++i)
+        {
+            for (size_t j = 0; j < dim1*dim2; ++j)
+                std::cout << constant_memory_h[i][j] << ' ';
+            std::cout << std::endl;
+        }
                 
-    /* } */
+    }
 
     if (!is_avg)
     {
@@ -344,12 +344,12 @@ void init_completion_step(
             );
         }
 
-        /* for (size_t i = 0; i < n_classes; ++i) */
-        /* { */
-        /*     for (size_t j = 0; j < dim1*dim2; ++j) */
-        /*         std::cout << constant_memory_h[i][j] << ' '; */
-        /*     std::cout << std::endl; */
-        /* } */
+        for (size_t i = 0; i < n_classes; ++i)
+        {
+            for (size_t j = 0; j < dim1*dim2; ++j)
+                std::cout << constant_memory_h[i][j] << ' ';
+            std::cout << std::endl;
+        }
 
         checkCudaErrors(cudaMemcpyToSymbol(
             cov_matrices_norms,
@@ -495,9 +495,9 @@ void kernel(
         }
 
         input_image[i] = { 
-            static_cast<unsigned char>(pixel[0]), 
-            static_cast<unsigned char>(pixel[1]), 
-            static_cast<unsigned char>(pixel[2]), 
+            static_cast<unsigned char>(-avg[mmp_max_class][0]), 
+            static_cast<unsigned char>(-avg[mmp_max_class][1]), 
+            static_cast<unsigned char>(-avg[mmp_max_class][2]), 
             static_cast<unsigned char>(mmp_max_class) 
         };
     }

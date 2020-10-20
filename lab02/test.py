@@ -108,7 +108,7 @@ def benchmark():
 
     df = pd.DataFrame(
         rows,
-        index=[str(2**i) for i in range(6)],
+        index=[str(2**(2*i)) for i in range(6)],
         columns=[36, 64, 256, 1024]
     )
 
