@@ -1,138 +1,80 @@
+#include "lab07.hpp"
+
 #include <iostream>
-#include <vector>
-#include <string>
-#include <array>
-#include <stdexcept>
+#include <sstream>
+#include <iomanip>
+#include <cmath>
+#include <fstream>
+#include <algorithm>
+#include <iterator>
 
 #include "MPI_dummy_helper.hpp"
 
 #include <mpi.h>
 
-#define TEST_SOMETHING
-#define TEST_INPUT
-
-#ifdef TEST_SOMETHING
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#endif
-
-namespace
+Lab07::Lab07(int argc, char **argv)
 {
-    struct Boundaries
-    {
-        double up;
-        double down;
-        double left;
-        double right;
-        double front;
-        double back;
+    int initialized;
 
-        bool operator==(const Boundaries &obj) const
-        {
-            return up == obj.up
-                && down == obj.down
-                && left == obj.left
-                && right == obj.right
-                && front == obj.front
-                && back == obj.back;
-        }
-    };
+    checkMPIErrors(MPI_Initialized(
+        &initialized
+    ));
 
-    using BlockType = std::vector< std::vector< std::vector<double> > >;
+    if (!initialized)
+        checkMPIErrors(MPI_Init(&argc, &argv));   
 
-    int SEND_ANY_TAG = 1;
+    checkMPIErrors(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
-    #ifdef TEST_INPUT
-    std::array<long long, 3> g_process_grid_shape;
-    std::array<long long, 3> g_block_shape;
-    std::string g_output_name;
-    double g_eps;
-    std::array<double, 3> g_l;
-    Boundaries g_boundaries;
-    double g_u_0;
+    if (rank == 0)
+        rank_0_init();
+    else
+        rank_non_0_init();
 
-    class InputEnvironment : public ::testing::Environment 
-    {
-    public:
-        void SetData(
-            const std::array<long long, 3> &process_grid_shape,
-            const std::array<long long, 3> &block_shape,
-            const std::string &output_name,
-            const double &eps,
-            const std::array<double, 3> &l,
-            const Boundaries &boundaries,
-            const double &u_0
-        )
-        {
-            g_process_grid_shape = process_grid_shape;
-            g_block_shape = block_shape;
-            g_output_name = output_name;
-            g_eps = eps;
-            g_l = l;
-            g_boundaries = boundaries;
-            g_u_0 = u_0;
-        }
+    block_z = rank / process_grid_shape[0] / process_grid_shape[1];
+    block_y = rank % (process_grid_shape[0] * process_grid_shape[1]) / process_grid_shape[1];
+    block_x = rank % (process_grid_shape[0] * process_grid_shape[1]) % process_grid_shape[1];
 
-        void SetUp() override {}
-
-        virtual ~InputEnvironment() {}
-
-        // Override this to define how to tear down the environment.
-        void TearDown() override {}
-    };
-    #endif
-};
-
-
-#ifdef TEST_INPUT
-TEST (InputTest, Main)
-{
-    int rank;
-
-    checkMPIErrors(MPI_Comm_rank(MPI_COMM_WORLD, &rank));   
-    
-    EXPECT_THAT(
-        g_process_grid_shape,
-        ::testing::ElementsAreArray({1ll, 1ll, 2ll})
-    )
-    << "Wrong process_shape_grid\n" << "Rank: " << rank;
-
-    EXPECT_THAT(
-        g_block_shape,
-        ::testing::ElementsAreArray({3ll, 3ll, 3ll})
-    )
-    << "Wrong block_shape\n" << "Rank: " << rank;
-
-    EXPECT_EQ(g_output_name, "mpi.out") << "Wrong output_name\n" << "Rank: " << rank;
-
-    EXPECT_NEAR(g_eps, 1e-10, 1e-11) << "Wrong eps\n" << "Rank: " << rank;
-
-    EXPECT_THAT(
-        g_l,
-        ::testing::ElementsAreArray({1.0, 1.0, 2.0})
-    ) 
-    << "Wrong l\n" << "Rank: " << rank;
-
-    EXPECT_EQ(
-        g_boundaries,
-        Boundaries({7.0, 0.0, 5.0, 0.0, 3.0, 0.0})
-    )
-    << "Wrong boundaries\n" << "Rank: " << rank;
-
-    EXPECT_EQ(g_u_0, 5.0) << "Wrong u_0\n" << "Rank: " << rank;
+    left.resize( block_x == 0                         ? 0 : block_shape[1] * block_shape[2]);
+    right.resize(block_x == process_grid_shape[0] - 1 ? 0 : block_shape[1] * block_shape[2]);
+    front.resize(block_y == 0                         ? 0 : block_shape[0] * block_shape[2]);
+    back.resize( block_y == process_grid_shape[1] - 1 ? 0 : block_shape[0] * block_shape[2]);
+    down.resize( block_z == 0                         ? 0 : block_shape[0] * block_shape[1]);
+    up.resize(   block_z == process_grid_shape[2] - 1 ? 0 : block_shape[0] * block_shape[1]);
 }
-#endif
 
+void Lab07::init(int argc, char **argv)
+{
+    int initialized;
 
-void rank_0_init(
-    std::array<long long, 3> &process_grid_shape,
-    std::array<long long, 3> &block_shape,
-    std::string &output_name,
-    double &eps,
-    std::array<double, 3> &l,
-    Boundaries &boundaries,
-    double &u_0
-)
+    checkMPIErrors(MPI_Initialized(
+        &initialized
+    ));
+
+    if (!initialized)
+    {
+        checkMPIErrors(MPI_Init(&argc, &argv));
+    }    
+}
+
+void Lab07::finalize()
+{
+    int finalized;
+
+    checkMPIErrors(MPI_Finalized(
+        &finalized
+    ));
+
+    if (!finalized)
+    {
+        checkMPIErrors(MPI_Barrier(MPI_COMM_WORLD));
+        checkMPIErrors(MPI_Finalize());
+    }    
+}
+
+#define locate(i, j, k) block[(i) + (j) * block_shape[0] + (k) * block_shape[0] * block_shape[1]]
+#define locate_p(v, i, j, k) v[(i) + (j) * block_shape[0] + (k) * block_shape[0] * block_shape[1]]
+
+void Lab07::rank_0_init()
 {
     // input
     
@@ -159,11 +101,11 @@ void rank_0_init(
     
     // send input data to other ranks
     
-    long long n_ranks = process_grid_shape[0] 
-                      * process_grid_shape[1]
-                      * process_grid_shape[2];
+    int n_ranks = process_grid_shape[0] 
+                  * process_grid_shape[1]
+                  * process_grid_shape[2];
 
-    for (long long rank = 1; rank < n_ranks; ++rank)
+    for (int rank = 1; rank < n_ranks; ++rank)
     {
         checkMPIErrors(MPI_Send(
             process_grid_shape.data(), 
@@ -230,15 +172,7 @@ void rank_0_init(
     }
 }
 
-void rank_non_0_init(
-    std::array<long long, 3> &process_grid_shape,
-    std::array<long long, 3> &block_shape,
-    std::string &output_name,
-    double &eps,
-    std::array<double, 3> &l,
-    Boundaries &boundaries,
-    double &u_0
-) 
+void Lab07::rank_non_0_init() 
 {
     int root_rank = 0;
 
@@ -261,7 +195,7 @@ void rank_non_0_init(
         MPI_COMM_WORLD,
         MPI_STATUS_IGNORE
     ));
-
+    
     MPI_Status status;
     checkMPIErrors(MPI_Probe(
         root_rank, 
@@ -277,17 +211,23 @@ void rank_non_0_init(
         &output_name_count
     ));
 
-    output_name.resize(output_name_count);
+    std::vector<char> output_name_buffer(output_name_count);
 
     checkMPIErrors(MPI_Recv(
-        &output_name[0], 
-        output_name.size(), 
+        output_name_buffer.data(), 
+        output_name_buffer.size(), 
         MPI_CHAR, 
         root_rank,
         MPI_ANY_TAG, 
         MPI_COMM_WORLD,
         MPI_STATUS_IGNORE
     ));
+
+    std::copy(
+        output_name_buffer.begin(),
+        output_name_buffer.end(),
+        std::back_inserter(output_name)
+    );
 
     checkMPIErrors(MPI_Recv(
         &eps, 
@@ -330,125 +270,373 @@ void rank_non_0_init(
     ));
 }
 
-void iter_process(
-    std::array<long long, 3> &process_grid_shape,
-    std::array<long long, 3> &block_shape,
-    std::string &output_name,
-    double &eps,
-    std::array<double, 3> &l,
-    Boundaries &boundaries,
-    BlockType &block
-) 
+int Lab07::block_position_to_rank(
+    long long block_x, 
+    long long block_y, 
+    long long block_z
+)
 {
-    BlockType prev_block = block;
+    if (block_x < 0 || block_y < 0 || block_z < 0)
+    {
+        return -1;
+    }
+
+    if (
+        block_x >= process_grid_shape[0] 
+        || block_y >= process_grid_shape[1] 
+        || block_z >= process_grid_shape[2]
+       )
+    {
+        return -1;
+    }
 
 
+    return block_x
+           + block_y * process_grid_shape[0]
+           + block_z * process_grid_shape[0] * process_grid_shape[1];
 }
 
-int submain(int argc, char **argv)
+void Lab07::send_boundary_layer(
+    std::vector<double> &v, 
+    int destination_rank, 
+    Lab07::BoundaryLayerTag tag,
+    std::vector<MPI_Request> &send_requests
+)
 {
-    #ifdef TEST_SOMETHING
-    ::testing::InitGoogleTest(&argc, argv);
-    #endif
+    if (destination_rank > -1)
+    {
+        MPI_Request request;
 
-    checkMPIErrors(MPI_Init(&argc, &argv));
+        checkMPIErrors(MPI_Isend(
+            v.data(), 
+            v.size(), 
+            MPI_DOUBLE, 
+            destination_rank,
+            static_cast<int>(tag), 
+            MPI_COMM_WORLD,
+            &request
+        ));
+
+        send_requests.push_back(request);
+    }
+}
+
+void Lab07::send_boundary_layers(std::vector<MPI_Request> &send_requests)
+{
+#define fill_boundary_layer(v, outer, inner, loc) \
+{ \
+    if (!v.empty()) \
+        for (long long i = 0; i < block_shape[outer]; ++i) \
+            for (long long j = 0; j < block_shape[inner]; ++j) \
+                v[i * block_shape[inner] + j] = loc; \
+}
     
-    int rank;
-
-    checkMPIErrors(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+    fill_boundary_layer(left , 2, 1, locate(0, j, i));
     
-    // resources
+    fill_boundary_layer(right, 2, 1, locate(block_shape[0] - 1, j, i));
+    
+    fill_boundary_layer(front, 2, 0, locate(j, 0, i));
 
-    std::array<long long, 3> process_grid_shape;
+    fill_boundary_layer(back , 2, 0, locate(j, block_shape[1] - 1, i));
+    
+    fill_boundary_layer(down , 1, 0, locate(j, i, 0));
 
-    std::array<long long, 3> block_shape;
+    fill_boundary_layer(up   , 1, 0, locate(j, i, block_shape[2] - 1));
 
-    std::string output_name;
+#undef fill_boundary_layer
+    
+    send_boundary_layer(
+        left, 
+        block_position_to_rank(block_x - 1, block_y, block_z),
+        BoundaryLayerTag::RIGHT,
+        send_requests
+    );
 
-    double eps;
+    send_boundary_layer(
+        right, 
+        block_position_to_rank(block_x + 1, block_y, block_z),
+        BoundaryLayerTag::LEFT,
+        send_requests
+    );
 
-    std::array<double, 3> l;
+    send_boundary_layer(
+        front, 
+        block_position_to_rank(block_x, block_y - 1, block_z),
+        BoundaryLayerTag::BACK,
+        send_requests
+    );
 
-    Boundaries boundaries;
+    send_boundary_layer(
+        back, 
+        block_position_to_rank(block_x, block_y + 1, block_z),
+        BoundaryLayerTag::FRONT,
+        send_requests
+    );
 
-    double u_0;
+    send_boundary_layer(
+        down, 
+        block_position_to_rank(block_x, block_y, block_z - 1),
+        BoundaryLayerTag::UP,
+        send_requests
+    );
 
-    // resources end
+    send_boundary_layer(
+        up, 
+        block_position_to_rank(block_x, block_y, block_z + 1),
+        BoundaryLayerTag::DOWN,
+        send_requests
+    );
+}
+
+void Lab07::receive_boundary_layer(
+    std::vector<double> &v, 
+    int source_rank, 
+    BoundaryLayerTag tag,
+    std::vector<MPI_Request> &receive_requests
+)
+{
+    if (source_rank > -1)
+    {
+        MPI_Request request;
+
+        checkMPIErrors(MPI_Irecv(
+            v.data(), 
+            v.size(), 
+            MPI_DOUBLE, 
+            source_rank,
+            static_cast<int>(tag), 
+            MPI_COMM_WORLD,
+            &request
+        ));
+
+        receive_requests.push_back(request);
+    }
+}
+
+void Lab07::receive_boundary_layers(
+    std::vector<double> &left,
+    std::vector<double> &right,
+    std::vector<double> &front,
+    std::vector<double> &back,
+    std::vector<double> &down,
+    std::vector<double> &up,
+    std::vector<MPI_Request> &receive_requests
+)
+{
+    receive_boundary_layer(
+        left,
+        block_position_to_rank(block_x - 1, block_y, block_z),
+        BoundaryLayerTag::LEFT,
+        receive_requests
+    );
+
+    receive_boundary_layer(
+        right,
+        block_position_to_rank(block_x + 1, block_y, block_z),
+        BoundaryLayerTag::RIGHT,
+        receive_requests
+    );
+
+    receive_boundary_layer(
+        front,
+        block_position_to_rank(block_x, block_y - 1, block_z),
+        BoundaryLayerTag::FRONT,
+        receive_requests
+    );
+
+    receive_boundary_layer(
+        back,
+        block_position_to_rank(block_x, block_y + 1, block_z),
+        BoundaryLayerTag::BACK,
+        receive_requests
+    );
+
+    receive_boundary_layer(
+        down,
+        block_position_to_rank(block_x, block_y, block_z - 1),
+        BoundaryLayerTag::DOWN,
+        receive_requests
+    );
+
+    receive_boundary_layer(
+        up,
+        block_position_to_rank(block_x, block_y, block_z + 1),
+        BoundaryLayerTag::UP,
+        receive_requests
+    );
+}
+
+void Lab07::solve() 
+{
+    block = std::vector<double>(block_shape[0] * block_shape[1] * block_shape[2], u_0);
+
+    std::vector<double> prev_block = block;
+
+    std::vector<double> left (block_x == 0                         ? 0 : block_shape[1] * block_shape[2]),
+                        right(block_x == process_grid_shape[0] - 1 ? 0 : block_shape[1] * block_shape[2]),
+                        front(block_y == 0                         ? 0 : block_shape[0] * block_shape[2]),
+                        back (block_y == process_grid_shape[1] - 1 ? 0 : block_shape[0] * block_shape[2]),
+                        down (block_z == 0                         ? 0 : block_shape[0] * block_shape[1]),
+                        up   (block_z == process_grid_shape[2] - 1 ? 0 : block_shape[0] * block_shape[1]);
+
+    double n_x = block_shape[0] * process_grid_shape[0],
+           n_y = block_shape[1] * process_grid_shape[1],
+           n_z = block_shape[2] * process_grid_shape[2];
+
+    double h_x_pow_minus_2 = n_x * n_x / l[0] / l[0],
+           h_y_pow_minus_2 = n_y * n_y / l[1] / l[1],
+           h_z_pow_minus_2 = n_z * n_z / l[2] / l[2],
+           denominator = 2 * (h_x_pow_minus_2 + h_y_pow_minus_2 + h_z_pow_minus_2);
+                                       
+    std::vector<MPI_Request> send_requests,
+                             receive_requests;
+
+    while (true)
+    {
+        send_boundary_layers(send_requests);
+
+        receive_boundary_layers(
+            left,
+            right,
+            front,
+            back,
+            down,
+            up,
+            receive_requests
+        );
+
+        checkMPIErrors(MPI_Waitall(
+            send_requests.size(),
+            send_requests.data(),
+            MPI_STATUSES_IGNORE
+        ));
+
+        send_requests.clear();
+
+        checkMPIErrors(MPI_Waitall(
+            receive_requests.size(),
+            receive_requests.data(),
+            MPI_STATUSES_IGNORE
+        ));
+
+        receive_requests.clear();
+
+        double max_abs_difference = 0;
+
+        for (long long i = 0; i < block_shape[0]; ++i)
+            for (long long j = 0; j < block_shape[1]; ++j)
+                for (long long k = 0; k < block_shape[2]; ++k)
+                {
+                    double u_left  = i == 0                  ? (left.empty()  ? boundaries.left  : left[ j + block_shape[1] * k]) : locate_p(prev_block, i - 1, j, k),
+                           u_right = i == block_shape[0] - 1 ? (right.empty() ? boundaries.right : right[j + block_shape[1] * k]) : locate_p(prev_block, i + 1, j, k),
+                           u_front = j == 0                  ? (front.empty() ? boundaries.front : front[i + block_shape[0] * k]) : locate_p(prev_block, i, j - 1, k),
+                           u_back  = j == block_shape[1] - 1 ? (back.empty()  ? boundaries.back  : back[ i + block_shape[0] * k]) : locate_p(prev_block, i, j + 1, k),
+                           u_down  = k == 0                  ? (down.empty()  ? boundaries.down  : down[ i + block_shape[0] * j]) : locate_p(prev_block, i, j, k - 1),
+                           u_up    = k == block_shape[2] - 1 ? (up.empty()    ? boundaries.up    : up[   i + block_shape[0] * j]) : locate_p(prev_block, i, j, k + 1);
+                    
+                    locate(i, j, k) =  (u_left  + u_right) * h_x_pow_minus_2;
+
+                    locate(i, j, k) += (u_front + u_back ) * h_y_pow_minus_2;
+
+                    locate(i, j, k) += (u_down  + u_up   ) * h_z_pow_minus_2;
+
+                    locate(i, j, k) /= denominator;
+
+                    max_abs_difference = std::max(std::abs(locate(i, j, k) - locate_p(prev_block, i, j, k)), max_abs_difference);
+                }   
+        
+        double total_max_abs_difference;
+
+        checkMPIErrors(MPI_Allreduce(
+            &max_abs_difference,
+            &total_max_abs_difference,
+            1,
+            MPI_DOUBLE,
+            MPI_MAX,
+            MPI_COMM_WORLD
+        ));
+
+        if (total_max_abs_difference < eps)
+            break;
+
+        prev_block = block; 
+    }
+}
+
+void Lab07::write_answer()
+{
+    std::ofstream output;
 
     if (rank == 0)
-        rank_0_init(
-            process_grid_shape,
-            block_shape,
-            output_name,
-            eps,
-            l,
-            boundaries,
-            u_0
-        );
-    else
-        rank_non_0_init(
-            process_grid_shape,
-            block_shape,
-            output_name,
-            eps,
-            l,
-            boundaries,
-            u_0
-        );
+    {
+        output = std::ofstream(output_name, std::ofstream::trunc);
 
-    int error_code = 0;
+        output << std::scientific
+               << std::setprecision(6);
+    }
 
-    #ifdef TEST_INPUT
-    ::testing::GTEST_FLAG(filter) = "InputTest*";
+    std::vector<double> buffer(block_shape[0]);
     
-    ::testing::Environment* const env =
-        ::testing::AddGlobalTestEnvironment(new InputEnvironment);
+    for (long long k = 0; k < process_grid_shape[2]; ++k)
+        for (long long height = 0; height < block_shape[2]; ++height)
+            for (long long j = 0; j < process_grid_shape[1]; ++j)
+                for (long long row = 0; row < block_shape[1]; ++row)        
+                    for (long long i = 0; i < process_grid_shape[0]; ++i)
+                    {
+                        int sender_rank = block_position_to_rank(i, j, k);
 
-    dynamic_cast<InputEnvironment*>(env)->SetData(
-        process_grid_shape,
-        block_shape,
-        output_name,
-        eps,
-        l,
-        boundaries,
-        u_0
-    );
+                        if (sender_rank == 0 && rank == 0)
+                        {
+                            for (long long column = 0; column < block_shape[0] - 1; ++column)
+                                output << locate(column, row, height) << " ";
 
-    error_code = RUN_ALL_TESTS(); 
-    #endif
+                            output << locate(block_shape[0] - 1, row, height);
+                        }
+                        else
+                        {
+                            if (rank == 0)
+                            {
+                                checkMPIErrors(MPI_Recv(
+                                    buffer.data(), 
+                                    block_shape[0], 
+                                    MPI_DOUBLE, 
+                                    sender_rank,
+                                    MPI_ANY_TAG, 
+                                    MPI_COMM_WORLD,
+                                    MPI_STATUS_IGNORE
+                                ));
 
-    std::vector< std::vector< std::vector<double> > > block(
-        block_shape[0],
-        std::vector< std::vector<double> >(
-            block_shape[1],
-            std::vector<double>(block_shape[2], u_0)
-        )
-    );
+                                for (long long column = 0; column < block_shape[0] - 1; ++column)
+                                    output << buffer[column] << " ";
 
-    iter_process(
-        process_grid_shape,
-        block_shape,
-        output_name,
-        eps,
-        l,
-        boundaries,
-        block
-    );
+                                output << buffer[block_shape[0] - 1];
+                            }
+                            else if (rank == sender_rank)
+                            {
+                                checkMPIErrors(MPI_Send(
+                                    &locate(0, row, height), 
+                                    block_shape[0], 
+                                    MPI_DOUBLE,
+                                    0,
+                                    SEND_ANY_TAG, 
+                                    MPI_COMM_WORLD
+                                ));
+                            }
+                        }
+                        
+                        if (rank == 0)
+                        {
+                            if (i == process_grid_shape[0] - 1)
+                            {
+                                output << "\n";
 
-    checkMPIErrors(MPI_Finalize());
-
-    return error_code;
-}
-
-int main(int argc, char **argv)
-{
-    try
-    {
-        return submain(argc, argv);
-    }
-    catch (const std::exception &err)
-    {
-        std::cerr << "ERROR:\n\n" << err.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+                                if (row == block_shape[1] - 1 && j == process_grid_shape[1] - 1
+                                    && (height != block_shape[2] - 1 || k != process_grid_shape[2] - 1)
+                                )
+                                    output << "\n";
+                            }
+                            else
+                                output << " ";
+                        }
+                    }
 }
