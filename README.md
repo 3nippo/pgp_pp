@@ -1,1 +1,1 @@
-"Programming of graphics processors" and "Parallel processing" labs
+"Programming of graphics processors" and "Parallel data processing" labs
