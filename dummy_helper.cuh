@@ -105,11 +105,20 @@ private:
 public:
     size_t count;
 
-    CudaMemory(size_t count) : count(count)
+    CudaMemory() {}
+
+    void alloc(size_t count)
     {
+        this->count = count;
+
         checkCudaErrors(
             cudaMalloc(&ptr, count * sizeof(T))
-        );    
+        );
+    }
+
+    CudaMemory(size_t count)
+    {
+        alloc(count);   
     }
 
     T*& get()
@@ -144,11 +153,16 @@ public:
         );
     }
 
-    ~CudaMemory()
+    void dealloc()
     {
         checkCudaErrors(
             cudaFree(ptr)
         );
+    }
+
+    ~CudaMemory()
+    {
+        dealloc();
     }
 };
 
