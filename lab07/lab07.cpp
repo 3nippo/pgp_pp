@@ -569,7 +569,7 @@ void Lab07::write_answer()
 
     if (rank == 0)
     {
-        output = std::ofstream(output_name, std::ofstream::trunc);
+        output.open(output_name, std::ofstream::trunc);
 
         output << std::scientific
                << std::setprecision(6);
