@@ -90,9 +90,11 @@ std::vector<T> read_vector1d(size_t n)
 template <class T>
 void print_vector1d(std::vector<T> &v)
 {
-    for (size_t i = 0; i < v.size() - 1; ++i)
+    for (size_t i = 0; i + 1 < v.size(); ++i)
         std::cout << v[i] << ' ';
-    std::cout << v.back() << std::endl;
+    
+    if (!v.empty())
+        std::cout << v.back() << std::endl;
 }
 
 
@@ -100,15 +102,47 @@ template <class T>
 class CudaMemory
 {
 private:
-    T *ptr;
+    T *ptr = nullptr;
 
 public:
-    size_t count;
+    size_t count = 0;
+
+    static void Swap(CudaMemory &left, CudaMemory &right)
+    {
+        size_t saveCount = left.count;
+        left.count = right.count;
+        right.count = saveCount;
+
+        T *savePtr = left.ptr;
+        left.ptr = right.ptr;
+        right.ptr = savePtr;
+    }
+    
+    CudaMemory(const CudaMemory &right)
+    {
+        ptr = right.ptr;
+        count = right.count;
+    }
+
+    CudaMemory& operator=(const CudaMemory &right)
+    {
+        ptr = right.ptr;
+        count = right.count;
+    }
+    
+    void Reset()
+    {
+        ptr = nullptr;
+        count = 0;
+    }
 
     CudaMemory() {}
 
     void alloc(size_t count)
     {
+        if (count == 0)
+            return;
+
         this->count = count;
 
         checkCudaErrors(
@@ -131,18 +165,21 @@ public:
         return count * sizeof(T);
     }
 
-    void memcpy(void *ptr, cudaMemcpyKind kind, size_t count=0)
+    void memcpy(void *ptr, cudaMemcpyKind kind, size_t deviceOffset=0, size_t count=0)
     {
+        if (!ptr)
+            return;
+
         void *dst, *src;
 
         if (kind == cudaMemcpyHostToDevice)
         {
             src = ptr;
-            dst = this->ptr;
+            dst = reinterpret_cast<T*>(this->ptr) + deviceOffset;
         }
         else
         {
-            src = this->ptr;
+            src = reinterpret_cast<T*>(this->ptr) + deviceOffset;
             dst = ptr;
         }
 
@@ -155,6 +192,9 @@ public:
 
     void dealloc()
     {
+        if (!ptr)
+            return;
+
         checkCudaErrors(
             cudaFree(ptr)
         );
@@ -231,6 +271,6 @@ public:
     {
         float ms_time = get_time();
 
-        std::cout << "time: " << ms_time << std::endl;
+        printf("time: %f\n", ms_time);
     }
 };
