@@ -7,11 +7,11 @@
 #include <fstream>
 #include <algorithm>
 #include <iterator>
-#include <stdexcept>
 
 #include "MPI_dummy_helper.hpp"
 
 #include <mpi.h>
+
 #include <omp.h>
 
 Lab09::Lab09(int argc, char **argv)
@@ -23,18 +23,7 @@ Lab09::Lab09(int argc, char **argv)
     ));
 
     if (!initialized)
-    {
-        checkMPIErrors(MPI_Init(&argc, &argv));
-        
-        /* int provided; */
-        
-        /* MPI_Init_thread(&argc, &argv, 8, &provided); */
-        
-        /* if(provided < 8) */
-        /* { */
-        /*     throw std::runtime_error("The threading support level is lesser than that demanded.\n"); */
-        /* } */
-    }
+        checkMPIErrors(MPI_Init(&argc, &argv));   
 
     checkMPIErrors(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
@@ -46,6 +35,8 @@ Lab09::Lab09(int argc, char **argv)
     block_z = rank / process_grid_shape[0] / process_grid_shape[1];
     block_y = rank % (process_grid_shape[0] * process_grid_shape[1]) / process_grid_shape[1];
     block_x = rank % (process_grid_shape[0] * process_grid_shape[1]) % process_grid_shape[1];
+    
+    sends_first = (block_x + block_y + block_z) % 2;
 
     left.resize( block_x == 0                         ? 0 : block_shape[1] * block_shape[2]);
     right.resize(block_x == process_grid_shape[0] - 1 ? 0 : block_shape[1] * block_shape[2]);
@@ -503,36 +494,69 @@ void Lab09::solve()
                                        
     std::vector<MPI_Request> send_requests,
                              receive_requests;
-    
+
     while (true)
     {
-        send_boundary_layers(send_requests);
+        if (sends_first)
+        {
+            send_boundary_layers(send_requests);
 
-        receive_boundary_layers(
-            left,
-            right,
-            front,
-            back,
-            down,
-            up,
-            receive_requests
-        );
+            checkMPIErrors(MPI_Waitall(
+                send_requests.size(),
+                send_requests.data(),
+                MPI_STATUSES_IGNORE
+            ));
 
-        checkMPIErrors(MPI_Waitall(
-            send_requests.size(),
-            send_requests.data(),
-            MPI_STATUSES_IGNORE
-        ));
+            send_requests.clear();
+            
+            receive_boundary_layers(
+                left,
+                right,
+                front,
+                back,
+                down,
+                up,
+                receive_requests
+            );
 
-        send_requests.clear();
+            checkMPIErrors(MPI_Waitall(
+                receive_requests.size(),
+                receive_requests.data(),
+                MPI_STATUSES_IGNORE
+            ));
 
-        checkMPIErrors(MPI_Waitall(
-            receive_requests.size(),
-            receive_requests.data(),
-            MPI_STATUSES_IGNORE
-        ));
+            receive_requests.clear();
+        }
+        else
+        {
+            receive_boundary_layers(
+                left,
+                right,
+                front,
+                back,
+                down,
+                up,
+                receive_requests
+            );
 
-        receive_requests.clear();
+            checkMPIErrors(MPI_Waitall(
+                receive_requests.size(),
+                receive_requests.data(),
+                MPI_STATUSES_IGNORE
+            ));
+
+            receive_requests.clear();
+
+            send_boundary_layers(send_requests);
+
+            checkMPIErrors(MPI_Waitall(
+                send_requests.size(),
+                send_requests.data(),
+                MPI_STATUSES_IGNORE
+            ));
+
+            send_requests.clear();
+        }
 
         double max_abs_difference = 0;
         
@@ -586,7 +610,7 @@ void Lab09::write_answer()
 
     if (rank == 0)
     {
-        output = std::ofstream(output_name, std::ofstream::trunc);
+        output.open(output_name, std::ofstream::trunc);
 
         output << std::scientific
                << std::setprecision(6);

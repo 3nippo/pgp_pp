@@ -57,6 +57,7 @@ private:
 
     long long block_x, block_y, block_z;
 
+    bool sends_first;
     // work data
     std::vector<double> block;
 
