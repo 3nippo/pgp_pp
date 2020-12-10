@@ -1,0 +1,16 @@
+==15180== NVPROF is profiling process 15180, command: ./lab05
+==15180== Profiling application: ./lab05
+==15180== Profiling result:
+==15180== Event result:
+Invocations                                Event Name         Min         Max         Avg       Total
+Device "GeForce GTX 960M (0)"
+    Kernel: placeNumbersByScan(unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int)
+         32                   shared_st_bank_conflict           0           0           0           0
+    Kernel: scanBlocksUp(unsigned int*, unsigned int*, unsigned int, unsigned int)
+         64                   shared_st_bank_conflict           0           0           0           0
+    Kernel: scanBlocksDown(unsigned int*, unsigned int*, unsigned int, unsigned int)
+         64                   shared_st_bank_conflict         945     4670325     2335635   149480640
+    Kernel: nullVector(unsigned int*, unsigned int)
+         96                   shared_st_bank_conflict           0           0           0           0
+    Kernel: initBitScan(unsigned int*, unsigned int*, unsigned int, unsigned int*, unsigned int)
+         32                   shared_st_bank_conflict           0           0           0           0
