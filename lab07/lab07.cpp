@@ -31,8 +31,8 @@ Lab07::Lab07(int argc, char **argv)
         rank_non_0_init();
 
     block_z = rank / process_grid_shape[0] / process_grid_shape[1];
-    block_y = rank % (process_grid_shape[0] * process_grid_shape[1]) / process_grid_shape[1];
-    block_x = rank % (process_grid_shape[0] * process_grid_shape[1]) % process_grid_shape[1];
+    block_y = rank % (process_grid_shape[0] * process_grid_shape[1]) / process_grid_shape[0];
+    block_x = rank % (process_grid_shape[0] * process_grid_shape[1]) % process_grid_shape[0];
     
     sends_first = (block_x + block_y + block_z) % 2;
 
