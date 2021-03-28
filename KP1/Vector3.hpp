@@ -5,7 +5,7 @@
 namespace RayTracing
 {
 
-struct Vector3
+class Vector3
 {
 public:
     float x, y, z;
