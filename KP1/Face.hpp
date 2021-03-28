@@ -7,13 +7,6 @@ namespace RayTracing
 {
 constexpr float eps = 1e-10f;
 
-struct HitRecord
-{
-   Point3 point;
-   Vector3 normal;
-   float t;
-};
-
 class Face
 {
 public:
@@ -21,7 +14,7 @@ public:
         const Ray &ray, 
         const float tMin,
         const float tMax,
-        HitRecord &hitRecord
+        float &tOutput
     ) 
     const = 0;
 };
