@@ -25,7 +25,7 @@ private:
         const float tMax,
         float &tOutput
     ) 
-    const;
+    const override;
 };
 
 } // namespace RayTracing
