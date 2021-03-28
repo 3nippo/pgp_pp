@@ -8,7 +8,7 @@ namespace RayTracing
 
 class Plane
 {
-private:
+protected:
     Point3 m_A, m_B, m_C;
     Vector3 m_normal;
     float m_D;
