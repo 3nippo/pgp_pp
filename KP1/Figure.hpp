@@ -20,7 +20,7 @@ public:
     Figure(const Point3 &origin, const float radius) 
         : m_origin(origin), m_radius(radius)
     {
-        FacesConstructor::ConstructFaces();
+        FacesConstructor::ConstructFaces(m_faces, m_origin, m_radius);
     }
 };
 
