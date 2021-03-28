@@ -10,7 +10,7 @@ constexpr float eps = 1e-10f;
 class Face
 {
 public:
-    virtual bool hit(
+    virtual bool Hit(
         const Ray &ray, 
         const float tMin,
         const float tMax,
