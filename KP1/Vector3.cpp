@@ -38,19 +38,19 @@ Vector3 Vector3::operator-(const Vector3 &v) const
     return Vector3{x - v.x, y - v.y, z - v.z};
 }
 
-Vector3& Vector3::operator*=(const Vector3 &v)
-{
-    x *= v.x;
-    y *= v.y;
-    z *= v.z;
+/* Vector3& Vector3::operator*=(const Vector3 &v) */
+/* { */
+/*     x *= v.x; */
+/*     y *= v.y; */
+/*     z *= v.z; */
 
-    return *this;
-}
+/*     return *this; */
+/* } */
 
-Vector3 Vector3::operator*(const Vector3 &v) const
-{
-    return Vector3{x * v.x, y * v.y, z * v.z};
-}
+/* Vector3 Vector3::operator*(const Vector3 &v) const */
+/* { */
+/*     return Vector3{x * v.x, y * v.y, z * v.z}; */
+/* } */
 
 Vector3& Vector3::operator*=(const float t)
 {
@@ -66,19 +66,19 @@ Vector3 Vector3::operator*(const float t) const
     return Vector3{x * t, y * t, z * t};
 }
 
-Vector3& Vector3::operator/=(const Vector3 &v)
-{
-    x /= v.x;
-    y /= v.y;
-    z /= v.z;
+/* Vector3& Vector3::operator/=(const Vector3 &v) */
+/* { */
+/*     x /= v.x; */
+/*     y /= v.y; */
+/*     z /= v.z; */
 
-    return *this;
-}
+/*     return *this; */
+/* } */
 
-Vector3 Vector3::operator/(const Vector3 &v) const
-{
-    return Vector3{x / v.x, y / v.y, z / v.z};
-}
+/* Vector3 Vector3::operator/(const Vector3 &v) const */
+/* { */
+/*     return Vector3{x / v.x, y / v.y, z / v.z}; */
+/* } */
 
 Vector3& Vector3::operator/=(const float t)
 {

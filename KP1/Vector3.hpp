@@ -23,13 +23,13 @@ public:
     Vector3& operator-=(const Vector3 &v);
     Vector3 operator-(const Vector3 &v) const;
 
-    Vector3& operator*=(const Vector3 &v);
-    Vector3 operator*(const Vector3 &v) const;
+    Vector3& operator*=(const Vector3 &v) = delete;
+    Vector3 operator*(const Vector3 &v) const = delete;
     Vector3& operator*=(const float t);
     Vector3 operator*(const float t) const;
 
-    Vector3& operator/=(const Vector3 &v);
-    Vector3 operator/(const Vector3 &v) const;
+    Vector3& operator/=(const Vector3 &v) = delete;
+    Vector3 operator/(const Vector3 &v) const = delete;
     Vector3& operator/=(const float t);
     Vector3 operator/(const float t) const;
 
