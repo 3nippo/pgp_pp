@@ -5,6 +5,7 @@
 
 namespace RayTracing 
 {
+constexpr float eps = 1e-10f;
 
 struct HitRecord
 {
