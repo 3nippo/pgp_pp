@@ -31,9 +31,7 @@ const
 
     float beta = (m_C - P).Cross((m_A - P)).Length() / 2 / area;
 
-    float gamma = 1 - alpha - beta;
-
-    if (alpha >= 0 && beta >= 0 && gamma >= 0)
+    if (alpha >= 0 && alpha <= 1 && beta >= 0 && beta <= 1)
     {
         tOutput = t;
 
