@@ -7,13 +7,8 @@ TriangleFace::TriangleFace(
     const Point3 &A, 
     const Point3 &B,
     const Point3 &C
-)
-    : m_A(A), m_B(B), m_C(C)
-{
-    m_normal = (B - A).Cross((C - A)).UnitVector();
-
-    m_D = A.Dot(m_normal);
-}
+) : Plane(A, B, C)
+{}
 
 bool TriangleFace::Hit(
     const Ray &ray, 
@@ -46,11 +41,6 @@ const
     }
 
     return false;
-}
-
-float TriangleFace::PlanePoint(const Ray &ray) const
-{
-    return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
 }
 
 } // namespace RayTracing

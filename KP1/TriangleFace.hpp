@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Face.hpp"
+#include "Plane.hpp"
 #include "Vector3.hpp"
 #include "Ray.hpp"
 
@@ -8,13 +9,8 @@
 namespace RayTracing 
 {
 
-class TriangleFace : public Face
+class TriangleFace : public Face, Plane
 {
-private:
-    Point3 m_A, m_B, m_C;
-    Vector3 m_normal;
-    float m_D;
-
 public:
     TriangleFace(
         const Point3 &A, 
@@ -30,8 +26,6 @@ private:
         float &tOutput
     ) 
     const;
-
-    float PlanePoint(const Ray &ray) const;
 };
 
 } // namespace RayTracing
