@@ -3,26 +3,33 @@
 #include "Vector3.hpp"
 #include "Ray.hpp"
 
-namespace RayTracing 
+namespace RayTracing
 {
-
-struct HitRecord
-{
-   Point3 point;
-   Vector3 normal;
-   float t;
-};
 
 class Plane
 {
+private:
+    Point3 m_A, m_B, m_C;
+    Vector3 m_normal;
+    float m_D;
+    
 public:
-    virtual bool hit(
-        const Ray &ray, 
-        const float tMin,
-        const float tMax,
-        HitRecord &hitRecord
-    ) 
-    const = 0;
+    Plane(
+        const Vector3 &A,
+        const Vector3 &B,
+        const Vector3 &C
+    )
+        : m_A(A), m_B(B), m_C(C)
+    {
+        m_normal = (B - A).Cross((C - A)).UnitVector();
+
+        m_D = A.Dot(m_normal);
+    }
+
+    float PlanePoint(const Ray &ray)
+    {
+        return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
+    }
 };
 
 } // namespace RayTracing
