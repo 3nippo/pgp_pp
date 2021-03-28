@@ -26,7 +26,7 @@ public:
         m_D = A.Dot(m_normal);
     }
 
-    float PlanePoint(const Ray &ray)
+    float PlanePoint(const Ray &ray) const
     {
         return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
     }
