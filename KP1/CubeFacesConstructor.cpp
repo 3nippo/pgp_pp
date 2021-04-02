@@ -5,6 +5,7 @@
 namespace RayTracing
 {
 
+template<typename Face>
 void CubeFacesConstructor::ConstructFaces(
     std::vector<Face> &faces, 
     const Point3 &origin, 
