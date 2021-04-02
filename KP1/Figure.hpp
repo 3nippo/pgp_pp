@@ -9,7 +9,7 @@ namespace RayTracing
 {
 
 template <typename FacesConstructor>
-class Figure : FacesConstructor
+class Figure 
 {
 protected:
     Point3 m_origin;
