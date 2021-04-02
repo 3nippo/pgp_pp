@@ -1,10 +1,10 @@
 #pragma once
 
 #include <vector>
-#include <limits>
 
 #include "Vector3.hpp"
 #include "Ray.hpp"
+#include "utils.hpp"
 
 namespace RayTracing
 {
@@ -31,7 +31,7 @@ public:
         float &tOutput
     )
     {
-        tOutput = std::numeric_limits<float>::infinity();
+        tOutput = INF;
 
         for (size_t i = 0; i < m_faces.size(); ++i)
         {
@@ -43,7 +43,7 @@ public:
             }
         }
 
-        if (tOutput == std::numeric_limits<float>::infinity())
+        if (tOutput == INF)
             return false;
 
         return true;
