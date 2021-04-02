@@ -51,7 +51,7 @@ public:
 
     Vector3 GetNormalInPoint(const Point3 &point)
     {
-        return point - m_origin;
+        return (point - m_origin).UnitVector();
     }
 };
 
