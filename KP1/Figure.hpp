@@ -24,7 +24,7 @@ public:
     Figure(const Point3 &origin, const float radius) 
         : m_origin(origin), m_radius(radius)
     {
-        FigureFacesConstructor::ConstructFigureFaces<>(m_faces, m_origin, m_radius);
+        FigureFacesConstructor::ConstructFigureFaces(m_faces, m_origin, m_radius);
     }
 
     bool Hit(
