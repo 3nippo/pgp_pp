@@ -17,7 +17,6 @@ public:
         const Point3 &C
     );
 
-private:
     bool Hit(
         const Ray &ray, 
         const float tMin,
