@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Face.hpp"
 #include "Plane.hpp"
 #include "Vector3.hpp"
 #include "Ray.hpp"
@@ -9,7 +8,7 @@
 namespace RayTracing 
 {
 
-class SquareFace : public Face, Plane
+class SquareFace : public Plane
 {
 public:
     SquareFace(
@@ -19,13 +18,13 @@ public:
     );
 
 private:
-    virtual bool Hit(
+    bool Hit(
         const Ray &ray, 
         const float tMin,
         const float tMax,
         float &tOutput
     ) 
-    const override;
+    const;
 };
 
 } // namespace RayTracing

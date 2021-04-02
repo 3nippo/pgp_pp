@@ -2,13 +2,12 @@
 
 #include <vector>
 
-#include "Face.hpp"
 #include "Vector3.hpp"
 
 namespace RayTracing
 {
 
-template <typename FacesConstructor>
+template <typename FacesConstructor, typename Face>
 class Figure 
 {
 protected:

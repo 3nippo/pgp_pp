@@ -10,6 +10,7 @@ namespace RayTracing
 class CubeFacesConstructor
 {
 public:
+    template<typename Face>
     static void ConstructFaces(
         std::vector<Face> &faces,
         const Point3 &origin,
