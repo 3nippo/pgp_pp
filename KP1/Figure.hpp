@@ -1,8 +1,10 @@
 #pragma once
 
 #include <vector>
+#include <limits>
 
 #include "Vector3.hpp"
+#include "Ray.hpp"
 
 namespace RayTracing
 {
@@ -20,6 +22,31 @@ public:
         : m_origin(origin), m_radius(radius)
     {
         FacesConstructor::ConstructFaces(m_faces, m_origin, m_radius);
+    }
+
+    bool Hit(
+        const Ray &ray, 
+        const float tMin,
+        const float tMax,
+        float &tOutput
+    )
+    {
+        tOutput = std::numeric_limits<float>::infinity();
+
+        for (size_t i = 0; i < m_faces.size(); ++i)
+        {
+            float tFace;
+
+            if (m_faces[i].Hit(ray, tMin, tMax, tFace))
+            {
+                tOutput = std::min(tOutput, tFace);
+            }
+        }
+
+        if (tOutput == std::numeric_limits<float>::infinity())
+            return false;
+
+        return true;
     }
 };
 
