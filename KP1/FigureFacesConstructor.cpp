@@ -1,4 +1,4 @@
-#include "CubeFacesConstructor.hpp"
+#include "FigureFacesConstructor.hpp"
 #include "SquareFace.hpp"
 #include <cmath>
 
@@ -6,7 +6,7 @@ namespace RayTracing
 {
 
 template<>
-void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
+void FigureFacesConstructor::ConstructFigureFaces<>
 (
     std::vector<SquareFace> &faces,
     const Point3 &origin,

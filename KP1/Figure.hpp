@@ -2,14 +2,17 @@
 
 #include <vector>
 
+#include "SquareFace.hpp"
 #include "Vector3.hpp"
 #include "Ray.hpp"
 #include "utils.hpp"
 
+#include "FigureFacesConstructor.hpp"
+
 namespace RayTracing
 {
 
-template <typename FacesConstructor, typename Face>
+template <typename Face>
 class Figure 
 {
 protected:
@@ -21,7 +24,7 @@ public:
     Figure(const Point3 &origin, const float radius) 
         : m_origin(origin), m_radius(radius)
     {
-        FacesConstructor::ConstructFaces(m_faces, m_origin, m_radius);
+        FigureFacesConstructor::ConstructFigureFaces<>(m_faces, m_origin, m_radius);
     }
 
     bool Hit(
@@ -54,5 +57,7 @@ public:
         return (point - m_origin).UnitVector();
     }
 };
+
+using Cube = Figure<SquareFace>;
 
 } // namespace RayTracing

@@ -9,17 +9,10 @@
 namespace RayTracing
 {
 
-enum class FigureId
-{
-
-Cube 
-
-}; // enum class Figure
-
 class FigureFacesConstructor
 {
 public:
-    template<FigureId figureId, typename Face>
+    template<typename Face>
     static void ConstructFigureFaces(
         std::vector<Face> &faces,
         const Point3 &origin,
@@ -30,7 +23,7 @@ public:
     }
 
     template<>
-    void ConstructFigureFaces<FigureId::Cube>
+    void ConstructFigureFaces<>
     (
         std::vector<SquareFace> &faces,
         const Point3 &origin,
