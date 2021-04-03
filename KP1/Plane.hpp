@@ -20,14 +20,14 @@ public:
         const Vector3 &C,
         const Point3 &origin
     )
-        : m_A(A), m_B(B), m_C(C)
+        : m_A(A + origin), m_B(B + origin), m_C(C + origin)
     {
-        m_normal = (B - A).Cross((C - A)).UnitVector();
+        m_normal = (m_B - m_A).Cross((m_C - m_A)).UnitVector();
 
-        if (A.Dist(origin) < A.Dist(origin + m_normal))
+        if (m_A.Dist(origin) < m_A.Dist(origin + m_normal))
             m_normal = -m_normal;
 
-        m_D = A.Dot(m_normal);
+        m_D = m_A.Dot(m_normal);
     }
 
     float PlanePoint(const Ray &ray) const
