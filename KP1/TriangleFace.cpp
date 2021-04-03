@@ -4,10 +4,9 @@
 namespace RayTracing 
 {
 TriangleFace::TriangleFace(
-    const Point3 &A, 
-    const Point3 &B,
-    const Point3 &C
-) : Plane(A, B, C)
+    const Point3 &planeCenter,
+    const Point3 &origin
+) : Plane(planeCenter, origin)
 {}
 
 bool TriangleFace::Hit(
