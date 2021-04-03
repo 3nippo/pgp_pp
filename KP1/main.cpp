@@ -34,6 +34,8 @@ int main()
         width,
         height
     );
+
+    rayTracer.Render();
     
     std::string fileName = "pic";
 

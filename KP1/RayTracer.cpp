@@ -48,7 +48,7 @@ void RayTracer::Render()
 
 void RayTracer::WriteToFile(const std::string &name)
 {
-    std::fstream outputFile(name);
+    std::ofstream outputFile(name);
 
     outputFile.write(
         reinterpret_cast<const char*>(&m_width), 
