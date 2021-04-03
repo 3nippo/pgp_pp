@@ -96,10 +96,10 @@ Vector3 Vector3::operator/(const float t) const
 
 float Vector3::Length() const
 {
-    return sqrtf(Length_squared());   
+    return sqrtf(LengthSquared());   
 }
 
-float Vector3::Length_squared() const
+float Vector3::LengthSquared() const
 {
     return x*x + y*y + z*z;
 }

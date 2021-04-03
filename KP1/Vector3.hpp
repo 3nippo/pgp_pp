@@ -35,7 +35,7 @@ public:
 
     float Length() const;
 
-    float Length_squared() const;
+    float LengthSquared() const;
 
     float Dot(const Vector3 &v) const;
     Vector3 Cross(const Vector3 &v) const;
