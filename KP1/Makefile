@@ -3,15 +3,12 @@ CC = g++
 FLAGS = -std=c++11
 DEBUG = -g
 
-OBJECTS = Camera.o FigureFacesConstructor.o main.o RayTracer.o SquareFace.o TriangleFace.o utils.o Vector3.o
+SOURCES = Camera.cpp FigureFacesConstructor.cpp main.cpp RayTracer.cpp SquareFace.cpp TriangleFace.cpp utils.cpp Vector3.cpp
 
 BIN = RayTracer
 
-%.o: %.cpp
-	$(CC) $(DEBUG) $(FLAGS) -I. -dc $< -o $@
-
-all: $(OBJECTS)
-	$(CC) $(DEBUG) $(FLAGS) $(OBJECTS) -o $(BIN)
+all:
+	$(CC) $(DEBUG) $(FLAGS) -o $(BIN) $(SOURCES)
 
 clean:
 	rm -rf $(BIN) *.o
