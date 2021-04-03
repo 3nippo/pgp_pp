@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <cassert>
 
 #include "Vector3.hpp"
 #include "SquareFace.hpp"
@@ -19,16 +20,8 @@ public:
         const float radius
     )
     {
-        static_assert(false, "Not implemented");
+        assert(("Not implemented", false));
     }
-
-    template<>
-    void ConstructFigureFaces<>
-    (
-        std::vector<SquareFace> &faces,
-        const Point3 &origin,
-        const float radius
-    );
 };
 
 } // namespace RayTracing

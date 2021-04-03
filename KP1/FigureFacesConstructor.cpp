@@ -6,7 +6,7 @@ namespace RayTracing
 {
 
 template<>
-void FigureFacesConstructor::ConstructFigureFaces<>
+void FigureFacesConstructor::ConstructFigureFaces
 (
     std::vector<SquareFace> &faces,
     const Point3 &origin,
