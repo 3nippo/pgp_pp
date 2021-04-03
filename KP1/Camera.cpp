@@ -38,8 +38,8 @@ void Camera::LookAt(
             u = vup.Cross(w).UnitVector(),
             v = w.Cross(u);
 
-    m_viewportHorizontal = m_viewportHeight * u;
-    m_viewportVertical = m_viewportWidth * v;
+    m_viewportHorizontal = m_viewportWidth * u;
+    m_viewportVertical = m_viewportHeight * v;
     
     m_lowerLeftCorner = m_lookFrom - m_viewportHorizontal / 2 - m_viewportVertical / 2 - w;
 }
