@@ -12,7 +12,7 @@ SquareFace::SquareFace(
 )
     : m_triangleFaces({
         TriangleFace(A, B, C, origin),
-        TriangleFace(B, C, D, origin)
+        TriangleFace(A, D, C, origin)
       })
 {}
 
