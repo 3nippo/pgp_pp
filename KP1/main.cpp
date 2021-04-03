@@ -8,12 +8,17 @@
 
 int main()
 {
-    RayTracing::Cube cube(
+    RayTracing::Cube cube1(
         RayTracing::Vector3{ 0, 0, 0 },
-        3
+        6
     );
 
-    RayTracing::Scene scene(cube);
+    RayTracing::Cube cube2(
+        RayTracing::Vector3{ 15, 0, 0 },
+        6
+    );
+
+    RayTracing::Scene scene(cube1, cube2);
     
     int width = 1024,
         height = 768;
@@ -24,8 +29,8 @@ int main()
         width, 
         height, 
         horizontalViewDegrees,
-        RayTracing::Vector3{ 0, 0, 0 },
-        RayTracing::Vector3{ 15, 15, 15 }
+        RayTracing::Vector3{ 7.5, 0, 0 },
+        RayTracing::Vector3{ 17, 17, 17 }
     );
 
     RayTracing::RayTracer rayTracer(

@@ -13,13 +13,15 @@ namespace RayTracing
 class Scene
 {
 private:
-    Figure<SquareFace> m_cube;
+    const Cube &m_cube1;
+    const Cube &m_cube2;
 
 public:
     Scene(
-        const Figure<SquareFace> &cube
+        const Cube &cube1,
+        const Cube &cube2
     )
-        : m_cube(cube)
+        : m_cube1(cube1), m_cube2(cube2)
     {}
 
     bool Hit(
@@ -28,10 +30,15 @@ public:
         HitRecord &hitRecord
     ) const
     {
-        if (m_cube.Hit(ray, tMin, hitRecord))
-            return true;
+        bool hitAtLeastOnce = false;
 
-        return false;
+        if (m_cube1.Hit(ray, tMin, hitRecord))
+            hitAtLeastOnce = true;
+
+        if (m_cube2.Hit(ray, tMin, hitRecord))
+            hitAtLeastOnce = true;
+
+        return hitAtLeastOnce;
     }
 };
 
