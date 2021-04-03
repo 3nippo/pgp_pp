@@ -17,11 +17,15 @@ public:
     Plane(
         const Vector3 &A,
         const Vector3 &B,
-        const Vector3 &C
+        const Vector3 &C,
+        const Point3 &origin
     )
         : m_A(A), m_B(B), m_C(C)
     {
         m_normal = (B - A).Cross((C - A)).UnitVector();
+
+        if (A.Dist(origin) < A.Dist(origin + m_normal))
+            m_normal = -m_normal;
 
         m_D = A.Dot(m_normal);
     }
