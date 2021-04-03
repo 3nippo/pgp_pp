@@ -25,36 +25,49 @@ void FigureFacesConstructor::ConstructFigureFaces
     );
 
     // back face
-    /* faces.emplace_back( */
-    /*     Point3{ -halfA, -halfA, -halfA }, */
-    /*     Point3{ +halfA, -halfA, -halfA }, */
-    /*     Point3{ +halfA, +halfA, -halfA }, */
-    /*     origin */
-    /* ); */
+    faces.emplace_back(
+        Point3{ -halfA, -halfA, -halfA },
+        Point3{ +halfA, -halfA, -halfA },
+        Point3{ +halfA, +halfA, -halfA },
+        Point3{ -halfA, +halfA, -halfA },
+        origin
+    );
 
-    /* // left face */
-    /* faces.emplace_back( */
-    /*     Point3{ -halfA, -halfA, +halfA }, */
-    /*     Point3{ -halfA, -halfA, -halfA }, */
-    /*     Point3{ -halfA, +halfA, -halfA }, */
-    /*     origin */
-    /* ); */
+    // left face
+    faces.emplace_back(
+        Point3{ -halfA, -halfA, -halfA },
+        Point3{ -halfA, +halfA, -halfA },
+        Point3{ -halfA, +halfA, +halfA },
+        Point3{ -halfA, -halfA, +halfA },
+        origin
+    );
     
-    /* // right */
-    /* faces.emplace_back( */
-    /*     Point3{ +halfA, -halfA, +halfA }, */
-    /*     Point3{ +halfA, -halfA, -halfA }, */
-    /*     Point3{ +halfA, +halfA, -halfA }, */
-    /*     origin */
-    /* ); */
+    // right face
+    faces.emplace_back(
+        Point3{ +halfA, -halfA, -halfA },
+        Point3{ +halfA, +halfA, -halfA },
+        Point3{ +halfA, +halfA, +halfA },
+        Point3{ +halfA, -halfA, +halfA },
+        origin
+    );
     
-    /* // bottom face */
-    /* faces.emplace_back( */
-    /*     Point3{ +halfA, -halfA, +halfA }, */
-    /*     Point3{ +halfA, -halfA, -halfA }, */
-    /*     Point3{ -halfA, -halfA, -halfA }, */
-    /*     origin */
-    /* ); */
+    // bottom face
+    faces.emplace_back(
+        Point3{ -halfA, -halfA, -halfA },
+        Point3{ +halfA, -halfA, -halfA },
+        Point3{ +halfA, -halfA, +halfA },
+        Point3{ -halfA, -halfA, +halfA },
+        origin
+    );
+
+    // top face
+    faces.emplace_back(
+        Point3{ -halfA, +halfA, -halfA },
+        Point3{ +halfA, +halfA, -halfA },
+        Point3{ +halfA, +halfA, +halfA },
+        Point3{ -halfA, +halfA, +halfA },
+        origin
+    );
 }
 
 } // namespace RayTracing
