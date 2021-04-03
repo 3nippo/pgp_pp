@@ -10,7 +10,7 @@ int main()
 {
     RayTracing::Cube cube(
         RayTracing::Vector3{ 0, 0, 0 },
-        5
+        3
     );
 
     RayTracing::Scene scene(cube);

@@ -20,12 +20,12 @@ bool SquareFace::Hit(
     const Ray &ray, 
     const float tMin,
     const float tMax,
-    float &tOutput
+    HitRecord &hitRecord
 ) 
 const
 {
     for (size_t i = 0; i < m_triangleFaces.size(); ++i)
-        if (m_triangleFaces[i].Hit(ray, tMin, tMax, tOutput))
+        if (m_triangleFaces[i].Hit(ray, tMin, hitRecord.t, hitRecord))
             return true;
 
     return false;

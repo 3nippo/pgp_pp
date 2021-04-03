@@ -6,6 +6,7 @@
 #include "Vector3.hpp"
 #include "Ray.hpp"
 #include "utils.hpp"
+#include "HitRecord.hpp"
 
 #include "FigureFacesConstructor.hpp"
 
@@ -30,29 +31,20 @@ public:
     bool Hit(
         const Ray &ray, 
         const float tMin,
-        const float tMax,
-        float &tOutput,
-        Vector3 &normal
+        HitRecord &hitRecord
     ) const
     {
-        tOutput = INF;
-        size_t faceIndex = 0;
+        bool hitAtLeastOnce = false;
 
         for (size_t i = 0; i < m_faces.size(); ++i)
         {
             float tFace = 0;
 
-            if (m_faces[i].Hit(ray, tMin, tMax, tFace) && tFace < tOutput)
-            {
-                tOutput = tFace;
-                normal = m_faces[i].GetNormal();
-            }
+            if (m_faces[i].Hit(ray, tMin, hitRecord.t, hitRecord))
+                hitAtLeastOnce = true;
         }
 
-        if (tOutput == INF)
-            return false;
-
-        return true;
+        return hitAtLeastOnce;
     }
 };
 

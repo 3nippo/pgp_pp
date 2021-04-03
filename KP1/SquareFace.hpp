@@ -6,6 +6,7 @@
 #include "Vector3.hpp"
 #include "Ray.hpp"
 #include "TriangleFace.hpp"
+#include "HitRecord.hpp"
 
 
 namespace RayTracing 
@@ -28,7 +29,7 @@ public:
         const Ray &ray, 
         const float tMin,
         const float tMax,
-        float &tOutput
+        HitRecord &hitRecord
     ) 
     const;
 };

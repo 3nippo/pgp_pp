@@ -15,7 +15,7 @@ bool TriangleFace::Hit(
     const Ray &ray, 
     const float tMin,
     const float tMax,
-    float &tOutput
+    HitRecord &hitRecord
 ) 
 const
 {
@@ -35,7 +35,8 @@ const
 
     if (alpha >= 0 && beta >= 0 && gamma >= 0)
     {
-        tOutput = t;
+        hitRecord.t = t;
+        hitRecord.normal = m_normal;
 
         return true;
     }

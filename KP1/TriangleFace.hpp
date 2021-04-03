@@ -3,10 +3,11 @@
 #include "Plane.hpp"
 #include "Vector3.hpp"
 #include "Ray.hpp"
-
+#include "HitRecord.hpp"
 
 namespace RayTracing 
 {
+
 
 class TriangleFace : public Plane
 {
@@ -22,7 +23,7 @@ public:
         const Ray &ray, 
         const float tMin,
         const float tMax,
-        float &tOutput
+        HitRecord &hitRecord
     ) const;
 };
 

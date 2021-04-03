@@ -5,6 +5,8 @@
 #include "Vector3.hpp"
 #include "utils.hpp"
 
+#include "HitRecord.hpp"
+
 namespace RayTracing
 {
 
@@ -23,26 +25,13 @@ public:
     bool Hit(
         const Ray &ray, 
         const float tMin,
-        const float tMax,
-        float &tOutput,
-        Vector3 &normal
+        HitRecord &hitRecord
     ) const
     {
-        tOutput = INF;
-        
-        float tFigure = 0;
-        Vector3 normalFigure;
+        if (m_cube.Hit(ray, tMin, hitRecord))
+            return true;
 
-        if (m_cube.Hit(ray, tMin, tMax, tFigure, normalFigure) && tFigure < tOutput)
-        {
-            tOutput = tFigure;
-            normal = normalFigure;
-        }
-
-        if (tOutput == INF)
-            return false;
-
-        return true;
+        return false;
     }
 };
 

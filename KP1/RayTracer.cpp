@@ -1,6 +1,9 @@
 #include "RayTracer.hpp"
 
 #include <fstream>
+#include <iostream>
+
+#include "HitRecord.hpp"
 
 namespace RayTracing
 {
@@ -18,11 +21,15 @@ RayTracer::RayTracer(
 
 Color RayTracer::RayColor(const Ray &ray)
 {
-    float t = 0;
-    Vector3 normal;
+    HitRecord hitRecord;
 
-    if (m_scene.Hit(ray, 0, INF, t, normal))
-        return 0.5 * (normal + Color(1, 1, 1));
+    hitRecord.t = INF;
+
+    if (m_scene.Hit(ray, 0, hitRecord))
+    {
+        return 0.5 * (hitRecord.normal + Color(1, 1, 1));
+        /* return Color(0, 0, 0); */
+    }
 
     float s = 0.5 * (ray.direction.UnitVector().y + 1.0);
 
@@ -31,6 +38,12 @@ Color RayTracer::RayColor(const Ray &ray)
 
 void RayTracer::Render()
 {
+    /* Ray ray = m_camera.GetRay(0.5, 0.5); */
+    
+    /* Color color = RayColor(ray); */
+
+    /* std::cout << color.x << ' ' << color.y << ' ' << color.z << std::endl; */
+
     for (int h = 0; h < m_height; ++h)
     {
         float y = static_cast<float>(m_height - 1 - h) / (m_height - 1);
