@@ -1,10 +1,12 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "Camera.hpp"
 #include "Vector3.hpp"
 #include "Scene.hpp"
+#include "Ray.hpp"
 
 namespace RayTracing
 {
@@ -26,6 +28,13 @@ public:
         const int width,
         const int height
     );
+
+    void Render();
+
+    void WriteToFile(const std::string &name);
+
+private:
+    Color RayColor(const Ray &ray);
 };
 
 } // namespace RayTracing

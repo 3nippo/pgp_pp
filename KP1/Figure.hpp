@@ -33,7 +33,7 @@ public:
         const float tMax,
         float &tOutput,
         Vector3 &normal
-    )
+    ) const
     {
         tOutput = INF;
         size_t faceIndex = 0;
