@@ -17,37 +17,38 @@ void FigureFacesConstructor::ConstructFigureFaces<>
     
     // front face
     faces.emplace_back(
-        origin + Point3{ -halfA, -halfA, +halfA },
-        origin + Point3{ +halfA, -halfA, +halfA },
-        origin + Point3{ +halfA, +halfA, +halfA }
+        origin + Vector3{ 0, 0, +halfA },
+        origin
     );
 
     // back face
     faces.emplace_back(
-        origin + Point3{ -halfA, -halfA, -halfA },
-        origin + Point3{ +halfA, -halfA, -halfA },
-        origin + Point3{ +halfA, +halfA, -halfA }
+        origin + Vector3{ 0, 0, -halfA },
+        origin
     );
 
     // left face
     faces.emplace_back(
-        origin + Point3{ -halfA, -halfA, +halfA },
-        origin + Point3{ -halfA, -halfA, -halfA },
-        origin + Point3{ -halfA, +halfA, -halfA }
+        origin + Vector3{ -halfA, 0, 0 },
+        origin
     );
     
     // right
     faces.emplace_back(
-        origin + Point3{ +halfA, -halfA, +halfA },
-        origin + Point3{ +halfA, -halfA, -halfA },
-        origin + Point3{ +halfA, +halfA, -halfA }
+        origin + Vector3{ +halfA, 0, 0 },
+        origin
     );
     
     // bottom face
     faces.emplace_back(
-        origin + Point3{ +halfA, -halfA, +halfA },
-        origin + Point3{ +halfA, -halfA, -halfA },
-        origin + Point3{ -halfA, -halfA, -halfA }
+        origin + Vector3{ 0, -halfA, 0 },
+        origin
+    );
+
+    // top face
+    faces.emplace_back(
+        origin + Vector3{ 0, +halfA, 0 },
+        origin
     );
 }
 
