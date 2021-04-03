@@ -25,7 +25,7 @@ int main()
         height, 
         horizontalViewDegrees,
         RayTracing::Vector3{ 0, 0, 0 },
-        RayTracing::Vector3{ 7, 7, 7 }
+        RayTracing::Vector3{ 15, 15, 15 }
     );
 
     RayTracing::RayTracer rayTracer(

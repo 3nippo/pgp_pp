@@ -18,8 +18,8 @@ Camera::Camera(
 
     float alpha = DegreesToRadians(horizontalViewDegrees);
 
-    m_viewportHeight = 2 * std::tan(alpha/2), // d = 1
-    m_viewportWidth = aspectRatio * m_viewportHeight;
+    m_viewportWidth = 2 * std::tan(alpha / 2); // d = 1
+    m_viewportHeight = m_viewportWidth / aspectRatio;
     
     LookAt(lookAt, lookFrom);
 }
