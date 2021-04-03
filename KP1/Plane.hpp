@@ -26,16 +26,6 @@ public:
         m_D = A.Dot(m_normal);
     }
 
-    Plane(
-        const Point3 &planeCenter,
-        const Point3 &origin
-    )
-    {
-        m_normal = (planeCenter - origin).UnitVector();
-
-        m_D = planeCenter.Dot(m_normal);
-    }
-
     float PlanePoint(const Ray &ray) const
     {
         return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
