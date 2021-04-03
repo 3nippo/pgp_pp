@@ -119,6 +119,11 @@ Vector3 Vector3::Cross(const Vector3 &v) const
     };
 }
 
+float Vector3::Dist(const Vector3 &v) const
+{
+    return (*this - v).Length();
+}
+
 Vector3 Vector3::UnitVector() const
 {
     return *this / Length();

@@ -39,6 +39,7 @@ public:
 
     float Dot(const Vector3 &v) const;
     Vector3 Cross(const Vector3 &v) const;
+    float Dist(const Vector3 &v) const;
     Vector3 UnitVector() const;
 };
 
