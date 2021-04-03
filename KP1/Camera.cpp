@@ -7,9 +7,9 @@ namespace RayTracing
 {
 
 Camera::Camera(
-    int width,
-    int height,
-    float horizontalViewDegrees,
+    const int width,
+    const int height,
+    const float horizontalViewDegrees,
     const Point3 &lookAt,
     const Point3 &lookFrom
 )
@@ -44,7 +44,7 @@ void Camera::LookAt(
     m_lowerLeftCorner = m_lookFrom - m_viewportHorizontal / 2 - m_viewportVertical / 2 - w;
 }
 
-Ray Camera::GetRay(float x, float y) const
+Ray Camera::GetRay(const float x, const float y) const
 {
     return Ray(
         m_lookFrom,

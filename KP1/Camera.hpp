@@ -22,9 +22,9 @@ private:
 
 public:
     Camera(
-        int width,
-        int height,
-        float horizontalViewDegrees,
+        const int width,
+        const int height,
+        const float horizontalViewDegrees,
         const Point3 &lookAt=Point3(),
         const Point3 &lookFrom=Point3()
     );
@@ -34,7 +34,7 @@ public:
         const Point3 &lookFrom
     );
 
-    Ray GetRay(float w, float h) const;
+    Ray GetRay(const float w, const float h) const;
 };
 
 } // namespace RayTracing
