@@ -40,7 +40,7 @@ public:
 
         for (size_t i = 0; i < m_faces.size(); ++i)
         {
-            float tFace;
+            float tFace = 0;
 
             if (m_faces[i].Hit(ray, tMin, tMax, tFace) && tFace < tOutput)
             {
