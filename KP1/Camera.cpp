@@ -16,7 +16,7 @@ Camera::Camera(
 {
     float aspectRatio = static_cast<float>(width) / height;
 
-    float alpha = DegreesToRadiand(horizontalViewDegrees);
+    float alpha = DegreesToRadians(horizontalViewDegrees);
 
     m_viewportHeight = 2 * std::tan(alpha/2), // d = 1
     m_viewportWidth = aspectRatio * m_viewportHeight;

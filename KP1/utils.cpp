@@ -6,7 +6,7 @@
 namespace RayTracing
 {
 
-float DegreesToRadiand(const float degrees)
+float DegreesToRadians(const float degrees)
 {
     return degrees * M_PI / 180;
 }
