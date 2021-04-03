@@ -8,7 +8,7 @@ OBJECTS = Camera.o FigureFacesConstructor.o main.o RayTracer.o SquareFace.o Tria
 BIN = RayTracer
 
 %.o: %.cpp
-	$(CC) -x cu $(DEBUG) $(FLAGS) -I. -dc $< -o $@
+	$(CC) $(DEBUG) $(FLAGS) -I. -dc $< -o $@
 
 all: $(OBJECTS)
 	$(CC) $(DEBUG) $(FLAGS) $(OBJECTS) -o $(BIN)
