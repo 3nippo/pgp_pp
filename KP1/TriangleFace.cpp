@@ -26,11 +26,10 @@ const
     
     Point3 P = ray.At(t);
 
-    float area = (m_B - m_A).Cross((m_C - m_A)).Length() / 2;
+    Vector3 n = (m_B - m_A).Cross(m_C - m_A);
 
-    float alpha = (m_B - P).Cross((m_C - P)).Length() / 2 / area;
-
-    float beta = (m_C - P).Cross((m_A - P)).Length() / 2 / area;
+    float alpha = n.Dot((m_C - m_B).Cross(P - m_B)) / n.LengthSquared(),
+          beta = n.Dot((m_A - m_C).Cross(P - m_C)) / n.LengthSquared();
 
     float gamma = 1 - alpha - beta;
 
