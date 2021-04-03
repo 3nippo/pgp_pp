@@ -34,7 +34,7 @@ void Camera::LookAt(
 
     const Vector3 vup{ 0, 1, 0 };
 
-    Vector3 w = (lookAt - lookFrom).UnitVector(),
+    Vector3 w = (lookFrom - lookAt ).UnitVector(),
             u = vup.Cross(w).UnitVector(),
             v = w.Cross(u);
 
