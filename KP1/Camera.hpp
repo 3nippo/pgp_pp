@@ -34,7 +34,7 @@ public:
         const Point3 &lookFrom
     );
 
-    Ray GetRay(float w, float h);
+    Ray GetRay(float w, float h) const;
 };
 
 } // namespace RayTracing

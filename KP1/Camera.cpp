@@ -44,7 +44,7 @@ void Camera::LookAt(
     m_lowerLeftCorner = m_lookFrom - m_viewportHorizontal / 2 - m_viewportVertical / 2 - w;
 }
 
-Ray Camera::GetRay(float x, float y)
+Ray Camera::GetRay(float x, float y) const
 {
     return Ray(
         m_lookFrom,
