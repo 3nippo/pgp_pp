@@ -31,18 +31,21 @@ public:
         const Ray &ray, 
         const float tMin,
         const float tMax,
-        float &tOutput
+        float &tOutput,
+        Vector3 &normal
     )
     {
         tOutput = INF;
+        size_t faceIndex = 0;
 
         for (size_t i = 0; i < m_faces.size(); ++i)
         {
             float tFace;
 
-            if (m_faces[i].Hit(ray, tMin, tMax, tFace))
+            if (m_faces[i].Hit(ray, tMin, tMax, tFace) && tFace < tOutput)
             {
-                tOutput = std::min(tOutput, tFace);
+                tOutput = tFace;
+                normal = m_faces[i].GetNormal();
             }
         }
 
@@ -50,11 +53,6 @@ public:
             return false;
 
         return true;
-    }
-
-    Vector3 GetNormalInPoint(const Point3 &point)
-    {
-        return (point - m_origin).UnitVector();
     }
 };
 

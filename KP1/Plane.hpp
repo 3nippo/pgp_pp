@@ -40,6 +40,11 @@ public:
     {
         return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
     }
+
+    const Vector3& GetNormal() const
+    {
+        return m_normal;
+    }
 };
 
 } // namespace RayTracing
