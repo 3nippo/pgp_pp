@@ -1,5 +1,5 @@
 #include "SquareFace.hpp"
-
+#include "utils.hpp"
 
 namespace RayTracing 
 {
@@ -7,8 +7,13 @@ SquareFace::SquareFace(
     const Point3 &A, 
     const Point3 &B,
     const Point3 &C,
+    const Point3 &D,
     const Point3 &origin
-) : Plane(A, B, C, origin)
+)
+    : m_triangleFaces({
+        TriangleFace(A, B, C, origin),
+        TriangleFace(B, C, D, origin)
+      })
 {}
 
 bool SquareFace::Hit(
@@ -19,25 +24,9 @@ bool SquareFace::Hit(
 ) 
 const
 {
-    float t = PlanePoint(ray);
-
-    if (t < tMin || t > tMax)
-        return false;
-    
-    Point3 P = ray.At(t);
-
-    float area = (m_B - m_A).Cross((m_C - m_A)).Length() / 2;
-
-    float alpha = (m_B - P).Cross((m_C - P)).Length() / 2 / area;
-
-    float beta = (m_C - P).Cross((m_A - P)).Length() / 2 / area;
-
-    if (alpha >= 0 && alpha <= 1 && beta >= 0 && beta <= 1)
-    {
-        tOutput = t;
-
-        return true;
-    }
+    for (size_t i = 0; i < m_triangleFaces.size(); ++i)
+        if (m_triangleFaces[i].Hit(ray, tMin, tMax, tOutput))
+            return true;
 
     return false;
 }
