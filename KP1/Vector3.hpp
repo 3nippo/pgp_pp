@@ -41,6 +41,8 @@ public:
     Vector3 Cross(const Vector3 &v) const;
     float Dist(const Vector3 &v) const;
     Vector3 UnitVector() const;
+
+    void Clamp(const float tMin, const float tMax);
 };
 
 Vector3 operator*(float t, const Vector3 &v);

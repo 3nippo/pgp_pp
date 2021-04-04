@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "utils.hpp"
+
 namespace RayTracing
 {
 
@@ -160,6 +162,13 @@ std::ostream& operator<<(std::ostream &stream, const Color &v)
     stream.write(reinterpret_cast<const char*>(&a), sizeof(char));
 
     return stream;
+}
+
+void Vector3::Clamp(const float tMin, const float tMax)
+{
+    x = RayTracing::Clamp(x, tMin, tMax);
+    y = RayTracing::Clamp(y, tMin, tMax);
+    z = RayTracing::Clamp(z, tMin, tMax);
 }
 
 } // namespace RayTracing
