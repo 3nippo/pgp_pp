@@ -12,6 +12,7 @@ public:
     Vector3 direction;
 
 public:
+    Ray() {}
     Ray(const Point3 &origin, const Vector3 &direction) : origin(origin), direction(direction) {}
 
     Point3 At(const float t) const

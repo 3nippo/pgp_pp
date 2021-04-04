@@ -17,6 +17,7 @@ private:
     const int m_width;
     const int m_height;
     const int m_samplesPerPixel;
+    const int m_depth;
 
     const Camera &m_camera;
     const Scene &m_scene;
@@ -28,7 +29,8 @@ public:
         const Scene &scene,
         const int width,
         const int height,
-        const int samplesPerPixel
+        const int samplesPerPixel,
+        const int depth
     );
 
     void Render();
@@ -37,7 +39,7 @@ public:
     void WriteToFilePPM(const std::string &name);
 
 private:
-    Color RayColor(const Ray &ray);
+    Color RayColor(const Ray &ray, const int depth);
 };
 
 } // namespace RayTracing
