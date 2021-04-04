@@ -14,7 +14,7 @@ int main()
     const float radius = 6;
 
     const RayTracing::Lambertian lambertian(
-        RayTracing::Color(1, 1, 1)
+        RayTracing::Color(0.8, 0.8, 0)
     );
 
     const RayTracing::Lambertian lambertian2(
@@ -22,7 +22,7 @@ int main()
     );
 
     const RayTracing::Metallic metallic(
-        RayTracing::Color(1, 1, 1)
+        RayTracing::Color(0.8, 0.8, 0.8)
     );
 
     RayTracing::Cube cube1(
@@ -56,12 +56,12 @@ int main()
         width, 
         height, 
         horizontalViewDegrees,
-        RayTracing::Vector3{ 7.5, 0, 0 },
-        RayTracing::Vector3{ 17, 17, 17 }
+        RayTracing::Vector3{ 6 / sqrtf(3), 0, 0 },
+        RayTracing::Vector3{ 30, 5, 15 }
     );
 
     int sqrtSamplesPerPixel = 4;
-    int depth = 5;
+    int depth = 4;
 
     RayTracing::RayTracer rayTracer(
         camera,
