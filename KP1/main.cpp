@@ -8,30 +8,44 @@
 #include "Vector3.hpp"
 #include "Lambertian.hpp"
 #include "Metallic.hpp"
+#include "Image.hpp"
+#include "ImageTexture.hpp"
+#include "Texture.hpp"
 
 int main()
 {
+    using namespace RayTracing;
+
     const float radius = 6;
 
-    const RayTracing::Lambertian lambertian(
-        RayTracing::Color(0.8, 0.8, 0)
+    SolidTexture solid1(Color(0.8, 0.8, 0.0)),
+                 solid2(Color(0.8, 0.8, 0.8));
+    
+    std::string textureFileName("morshu.data");
+
+    Image image(textureFileName);
+
+    ImageTexture imageTexture(image, Color(1, 1, 1));
+
+    const Lambertian lambertian(
+        &solid1
     );
 
-    const RayTracing::Lambertian lambertian2(
-        RayTracing::Color(0.7, 0.3, 0.3)
+    const Lambertian lambertian2(
+        &imageTexture
     );
 
-    const RayTracing::Metallic metallic(
-        RayTracing::Color(0.8, 0.8, 0.8)
+    const Metallic metallic(
+        &solid2
     );
 
-    RayTracing::Cube cube1(
+    Cube cube1(
         RayTracing::Vector3{ 0, 0, 0 },
         radius,
         &metallic
     );
 
-    RayTracing::Cube cube2(
+    Cube cube2(
         RayTracing::Vector3{ 15, 0, 0 },
         radius,
         &lambertian2
