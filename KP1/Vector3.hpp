@@ -50,6 +50,14 @@ using Point3 = Vector3;
 // RGB color
 using Color = Vector3; 
 
+void ColorToRGBA(
+    const Color &color,
+    unsigned char &r,
+    unsigned char &g,
+    unsigned char &b,
+    unsigned char &a
+);
+
 std::ostream& operator<<(std::ostream &stream, const Color &v);
 
 } // namespace RayTracing

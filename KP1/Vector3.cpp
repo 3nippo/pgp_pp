@@ -134,12 +134,25 @@ Vector3 operator*(float t, const Vector3 &v)
     return Vector3{t * v.x, t * v.y, t * v.z};
 }
 
+void ColorToRGBA(
+    const Color &color,
+    unsigned char &r,
+    unsigned char &g,
+    unsigned char &b,
+    unsigned char &a
+)
+{
+    r = static_cast<unsigned char>(255.999f * color.x);
+    g = static_cast<unsigned char>(255.999f * color.y);
+    b = static_cast<unsigned char>(255.999f * color.z);
+    a = 255;
+}
+
 std::ostream& operator<<(std::ostream &stream, const Color &v)
 {
-    const unsigned char r = static_cast<unsigned char>(255.999f * v.x),
-                        g = static_cast<unsigned char>(255.999f * v.y),
-                        b = static_cast<unsigned char>(255.999f * v.z),
-                        a = 255;
+    unsigned char r, g, b, a;
+
+    ColorToRGBA(v, r, g, b, a);
 
     stream.write(reinterpret_cast<const char*>(&r), sizeof(char));
     stream.write(reinterpret_cast<const char*>(&g), sizeof(char));

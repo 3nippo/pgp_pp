@@ -34,6 +34,7 @@ public:
     void Render();
 
     void WriteToFile(const std::string &name);
+    void WriteToFilePPM(const std::string &name);
 
 private:
     Color RayColor(const Ray &ray);
