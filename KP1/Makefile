@@ -3,7 +3,7 @@ CC = g++
 FLAGS = -std=c++11
 DEBUG = -g
 
-SOURCES = Camera.cpp FigureFacesConstructor.cpp main.cpp RayTracer.cpp SquareFace.cpp TriangleFace.cpp utils.cpp Vector3.cpp
+SOURCES = Camera.cpp FigureFacesConstructor.cpp main.cpp RayTracer.cpp SquareFace.cpp TriangleFace.cpp utils.cpp Vector3.cpp Image.cpp
 
 BIN = RayTracer
 
