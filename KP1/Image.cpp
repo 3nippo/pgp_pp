@@ -36,8 +36,8 @@ Image::Image(const std::string &fileName)
 
 Color Image::GetColor(const float u, const float v) const
 {
-    int w = Clamp(u * m_width, 0, m_width),
-        h = Clamp(v * m_height, 0, m_height);
+    int w = Clamp(u * (m_width - 1), 0, (m_width - 1)),
+        h = Clamp(v * (m_height - 1), 0, (m_height - 1));
 
     return buffer[w + m_width * h];
 }
