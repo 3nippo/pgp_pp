@@ -19,6 +19,7 @@ public:
         : m_color(color)
     {}
 
+private:
     virtual Color GetColor(const float u, const float v) const override
     {
         return m_color;
