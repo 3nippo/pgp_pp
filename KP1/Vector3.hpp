@@ -41,6 +41,7 @@ public:
     Vector3 Cross(const Vector3 &v) const;
     float Dist(const Vector3 &v) const;
     Vector3 UnitVector() const;
+    bool NearZero() const;
 
     void Clamp(const float tMin, const float tMax);
     

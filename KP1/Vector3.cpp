@@ -131,6 +131,11 @@ Vector3 Vector3::UnitVector() const
     return *this / Length();
 }
 
+bool Vector3::NearZero() const
+{
+    return fabs(x) < EPS && fabs(y) < EPS && fabs(z) < EPS; 
+}
+
 Vector3 operator*(float t, const Vector3 &v)
 {
     return Vector3{t * v.x, t * v.y, t * v.z};
