@@ -10,9 +10,9 @@ class Material;
 struct HitRecord
 {
     float t;
-    // or alpha
+    // or barycentric alpha
     float u;
-    // or beta
+    // or barycentric beta
     float v;
     Vector3 normal;
     Point3 point;
