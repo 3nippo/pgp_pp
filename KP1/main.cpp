@@ -45,7 +45,7 @@ int main()
         &metallic
     );
 
-    Cube cube2(
+    TexturedCube cube2(
         RayTracing::Vector3{ 15, 0, 0 },
         radius,
         &lambertian2

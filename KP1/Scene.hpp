@@ -14,13 +14,13 @@ class Scene
 {
 private:
     const Cube &m_cube1;
-    const Cube &m_cube2;
+    const TexturedCube &m_cube2;
     const Cube &m_cube3;
 
 public:
     Scene(
         const Cube &cube1,
-        const Cube &cube2,
+        const TexturedCube &cube2,
         const Cube &cube3
     )
         : m_cube1(cube1), 
