@@ -33,11 +33,14 @@ int main()
         RayTracing::Vector3{ 17, 17, 17 }
     );
 
+    int sqrtSamplesPerPixel = 4;
+
     RayTracing::RayTracer rayTracer(
         camera,
         scene,
         width,
-        height
+        height,
+        sqrtSamplesPerPixel * sqrtSamplesPerPixel
     );
 
     rayTracer.Render();

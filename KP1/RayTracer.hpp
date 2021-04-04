@@ -16,6 +16,7 @@ class RayTracer
 private:
     const int m_width;
     const int m_height;
+    const int m_samplesPerPixel;
 
     const Camera &m_camera;
     const Scene &m_scene;
@@ -26,7 +27,8 @@ public:
         const Camera &camera,
         const Scene &scene,
         const int width,
-        const int height
+        const int height,
+        const int samplesPerPixel
     );
 
     void Render();
