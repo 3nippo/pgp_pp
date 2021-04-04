@@ -48,7 +48,7 @@ Ray Camera::GetRay(const float x, const float y) const
 {
     return Ray(
         m_lookFrom,
-        (m_lowerLeftCorner + x * m_viewportHorizontal + y * m_viewportVertical - m_lookFrom).UnitVector()
+        m_lowerLeftCorner + x * m_viewportHorizontal + y * m_viewportVertical - m_lookFrom
     );
 }
 
