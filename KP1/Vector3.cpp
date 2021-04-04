@@ -150,6 +150,15 @@ void ColorToRGBA(
     a = 255;
 }
 
+Vector3 Vector3::Random(const float a, const float b)
+{
+    return Vector3{
+        GenRandom(a, b),
+        GenRandom(a, b),
+        GenRandom(a, b)
+    };   
+}
+
 std::ostream& operator<<(std::ostream &stream, const Color &v)
 {
     unsigned char r, g, b, a;
