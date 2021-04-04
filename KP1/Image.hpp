@@ -12,8 +12,8 @@ class Image
 private:
     int m_width;
     int m_height;
-
-    std::vector<Color> m_buffer;
+public:
+    std::vector<Color> buffer;
 public:
     Image(const std::string &fileName);
 

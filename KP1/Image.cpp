@@ -26,7 +26,7 @@ Image::Image(const std::string &fileName)
         file.read(reinterpret_cast<char*>(&b), sizeof(b));
         file.read(reinterpret_cast<char*>(&a), sizeof(a));
 
-        m_buffer.push_back(Color{
+        buffer.push_back(Color{
             r / 255.0f,
             g / 255.0f,
             b / 255.0f
@@ -39,7 +39,7 @@ Color Image::GetColor(const float u, const float v) const
     int w = Clamp(u * m_width, 0, m_width),
         h = Clamp(v * m_height, 0, m_height);
 
-    return m_buffer[w + m_width * h];
+    return buffer[w + m_width * h];
 }
 
 } // RayTracing
