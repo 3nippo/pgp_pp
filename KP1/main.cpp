@@ -1,4 +1,5 @@
 #include <string>
+#include <cmath>
 
 #include "RayTracer.hpp"
 #include "Scene.hpp"
@@ -8,17 +9,26 @@
 
 int main()
 {
+    const float radius = 6;
+
     RayTracing::Cube cube1(
         RayTracing::Vector3{ 0, 0, 0 },
-        6
+        radius
     );
 
     RayTracing::Cube cube2(
         RayTracing::Vector3{ 15, 0, 0 },
-        6
+        radius
     );
 
-    RayTracing::Scene scene(cube1, cube2);
+    const float radius2 = 40;
+
+    RayTracing::Cube cube3(
+        RayTracing::Vector3{ 0, (-radius2 - radius) / sqrtf(3), 0 },
+        radius2
+    );
+
+    RayTracing::Scene scene(cube1, cube2, cube3);
     
     int width = 1024,
         height = 768;
