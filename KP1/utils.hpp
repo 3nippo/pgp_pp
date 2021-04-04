@@ -16,9 +16,12 @@ float Clamp(
 );
 
 // uniform distribution
+float GenRandom();
+
+// uniform distribution
 float GenRandom(
-    const float a=0, 
-    const float b=1
+    const float a, 
+    const float b
 );
 
 } // namespace RayTracing

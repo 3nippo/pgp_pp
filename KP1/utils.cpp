@@ -27,16 +27,20 @@ float Clamp(
     return x;
 }
 
-float GenRandom(
-    const float a,
-    const float b
-)
+float GenRandom()
 {
-    static std::uniform_real_distribution<float> distribution(a, b);
+    static std::uniform_real_distribution<float> distribution(0, 1);
 
     static std::mt19937 generator;
 
     return distribution(generator);
 }
 
+float GenRandom(
+    const float a,
+    const float b
+)
+{
+    return a + (b - a) * GenRandom();
+}
 } // namespace RayTracing
