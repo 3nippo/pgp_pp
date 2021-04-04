@@ -7,6 +7,7 @@
 #include "Ray.hpp"
 #include "utils.hpp"
 #include "HitRecord.hpp"
+#include "Material.hpp"
 
 #include "FigureFacesConstructor.hpp"
 
@@ -16,14 +17,19 @@ namespace RayTracing
 template <typename Face>
 class Figure 
 {
-protected:
-    Point3 m_origin;
-    float m_radius;
+private:
+    const Point3 m_origin;
+    const float m_radius;
     std::vector<Face> m_faces;
+    const Material* const m_material;
 
 public:
-    Figure(const Point3 &origin, const float radius) 
-        : m_origin(origin), m_radius(radius)
+    Figure(
+        const Point3 &origin, 
+        const float radius,
+        const Material* const material
+    ) 
+        : m_origin(origin), m_radius(radius), m_material(material)
     {
         FigureFacesConstructor::ConstructFigureFaces(m_faces, m_origin, m_radius);
     }
@@ -43,6 +49,9 @@ public:
             if (m_faces[i].Hit(ray, tMin, hitRecord.t, hitRecord))
                 hitAtLeastOnce = true;
         }
+
+        if (hitAtLeastOnce)
+            hitRecord.material = m_material;
 
         return hitAtLeastOnce;
     }

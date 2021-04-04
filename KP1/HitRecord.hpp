@@ -11,7 +11,7 @@ struct HitRecord
 {
     float t;
     Vector3 normal;
-    Material *material;
+    const Material *material;
 };
 
 } // namespace RayTracing
