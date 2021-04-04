@@ -89,9 +89,9 @@ void FigureFacesConstructor::ConstructFigureFaces
         Point3{ -halfA, +halfA, +halfA },
         origin,
         TriangleMapping{
-            Point3{ 0, 0, 0 },
-            Point3{ 0, 0, 0 },
-            Point3{ 0, 0, 0 }
+            Point3{ 0, 1, 0 },
+            Point3{ 1, 1, 0 },
+            Point3{ 1, 0, 0 }
         },
         TriangleMapping{
             Point3{ 0, 1, 0 },
@@ -184,14 +184,14 @@ void FigureFacesConstructor::ConstructFigureFaces
         Point3{ -halfA, +halfA, +halfA },
         origin,
         TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 }
+            Point3{ 0, 0, 0 },
+            Point3{ 1, 0, 0 },
+            Point3{ 1, 1, 0 }
         },
         TriangleMapping{
-            Point3{ 0, 1, 0 },
             Point3{ 0, 0, 0 },
-            Point3{ 1, 0, 0 }
+            Point3{ 0, 1, 0 },
+            Point3{ 1, 1, 0 }
         }
     );
 }
