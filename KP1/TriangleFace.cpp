@@ -37,6 +37,7 @@ const
     {
         hitRecord.t = t;
         hitRecord.normal = m_normal;
+        hitRecord.point = ray.At(t);
 
         return true;
     }
