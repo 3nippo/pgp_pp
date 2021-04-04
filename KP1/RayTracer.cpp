@@ -89,4 +89,24 @@ void RayTracer::WriteToFile(const std::string &name)
         outputFile << m_buffer[i];
 }
 
+void RayTracer::WriteToFilePPM(const std::string &name)
+{
+    std::ofstream outputFile(name);
+
+    outputFile << "P3" << std::endl;
+
+    outputFile << m_width << ' ' << m_height << std::endl;
+
+    outputFile << 255 << std::endl;
+
+    for (size_t i = 0; i < m_buffer.size(); i+=m_samplesPerPixel)
+    {
+        unsigned char r, g, b, a;
+
+        ColorToRGBA(m_buffer[i], r, g, b, a);
+
+        outputFile << r << ' ' << g << ' ' << b << std::endl;
+    }
+}
+
 } // namespace RayTracing
