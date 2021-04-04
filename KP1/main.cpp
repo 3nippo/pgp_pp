@@ -7,6 +7,7 @@
 #include "Figure.hpp"
 #include "Vector3.hpp"
 #include "Lambertian.hpp"
+#include "Metallic.hpp"
 
 int main()
 {
@@ -16,16 +17,24 @@ int main()
         RayTracing::Color(1, 1, 1)
     );
 
+    const RayTracing::Lambertian lambertian2(
+        RayTracing::Color(0.7, 0.3, 0.3)
+    );
+
+    const RayTracing::Metallic metallic(
+        RayTracing::Color(1, 1, 1)
+    );
+
     RayTracing::Cube cube1(
         RayTracing::Vector3{ 0, 0, 0 },
         radius,
-        &lambertian
+        &metallic
     );
 
     RayTracing::Cube cube2(
         RayTracing::Vector3{ 15, 0, 0 },
         radius,
-        &lambertian
+        &lambertian2
     );
 
     const float radius2 = 40;
