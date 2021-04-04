@@ -5,10 +5,13 @@
 namespace RayTracing
 {
 
+class Material;
+
 struct HitRecord
 {
     float t;
     Vector3 normal;
+    Material *material;
 };
 
 } // namespace RayTracing
