@@ -58,5 +58,6 @@ public:
 };
 
 using Cube = Figure<SquareFace>;
+using TexturedCube = Figure<MappedSquareFace>;
 
 } // namespace RayTracing
