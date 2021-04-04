@@ -9,7 +9,13 @@ namespace RayTracing
 
 class Material
 {
+protected:
+    Color m_albedo;
 public:
+    Material(const Color &albedo)
+        : m_albedo(albedo)
+    {}
+
     virtual bool scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
