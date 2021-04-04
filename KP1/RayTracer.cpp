@@ -65,6 +65,8 @@ void RayTracer::Render()
             }
 
             mean /= m_samplesPerPixel;
+
+            mean.Clamp(0, 0.999);
             
             m_buffer[(w + h * m_width) * m_samplesPerPixel + 0] = mean;
         }
