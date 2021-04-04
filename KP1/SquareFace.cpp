@@ -31,4 +31,31 @@ const
     return false;
 }
 
+bool MappedSquareFace::Hit(
+    const Ray &ray, 
+    const float tMin,
+    const float tMax,
+    HitRecord &hitRecord
+) 
+const
+{
+    for (size_t i = 0; i < m_triangleFaces.size(); ++i)
+        if (m_triangleFaces[i].Hit(ray, tMin, hitRecord.t, hitRecord))
+        {
+            const TriangleMapping &mapping = m_triangleMappings[i];
+
+            Vector3 textureCoords = \
+                hitRecord.u * mapping.m_A \
+                + hitRecord.v * mapping.m_B \
+                + (1 - hitRecord.u - hitRecord.v) * mapping.m_C;
+
+            hitRecord.u = textureCoords.x;
+            hitRecord.v = textureCoords.y;
+
+            return true;
+        }
+
+    return false;
+}
+
 } // namespace RayTracing

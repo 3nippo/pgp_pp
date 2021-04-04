@@ -29,7 +29,7 @@ private:
 
 class TriangleMapping
 {
-protected:
+public:
     Vector3 m_A;
     Vector3 m_B;
     Vector3 m_C;

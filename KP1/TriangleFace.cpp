@@ -36,6 +36,8 @@ const
     if (alpha >= 0 && beta >= 0 && gamma >= 0)
     {
         hitRecord.t = t;
+        hitRecord.u = alpha;
+        hitRecord.v = beta;
         hitRecord.normal = m_normal;
         hitRecord.point = ray.At(t);
 
