@@ -6,6 +6,7 @@ namespace RayTracing
 {
 
 constexpr float INF = std::numeric_limits<float>::infinity();
+constexpr float EPS = 1e-8;
 
 float DegreesToRadians(const float degrees);
 
