@@ -6,26 +6,34 @@
 #include "Camera.hpp"
 #include "Figure.hpp"
 #include "Vector3.hpp"
+#include "Lambertian.hpp"
 
 int main()
 {
     const float radius = 6;
 
+    const RayTracing::Lambertian lambertian(
+        RayTracing::Color(1, 1, 1)
+    );
+
     RayTracing::Cube cube1(
         RayTracing::Vector3{ 0, 0, 0 },
-        radius
+        radius,
+        &lambertian
     );
 
     RayTracing::Cube cube2(
         RayTracing::Vector3{ 15, 0, 0 },
-        radius
+        radius,
+        &lambertian
     );
 
     const float radius2 = 40;
 
     RayTracing::Cube cube3(
         RayTracing::Vector3{ 0, (-radius2 - radius) / sqrtf(3), 0 },
-        radius2
+        radius2,
+        &lambertian
     );
 
     RayTracing::Scene scene(cube1, cube2, cube3);
@@ -44,13 +52,15 @@ int main()
     );
 
     int sqrtSamplesPerPixel = 4;
+    int depth = 5;
 
     RayTracing::RayTracer rayTracer(
         camera,
         scene,
         width,
         height,
-        sqrtSamplesPerPixel * sqrtSamplesPerPixel
+        sqrtSamplesPerPixel * sqrtSamplesPerPixel,
+        depth
     );
 
     rayTracer.Render();
