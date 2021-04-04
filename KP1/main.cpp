@@ -45,9 +45,9 @@ int main()
 
     rayTracer.Render();
     
-    std::string fileName = "pic";
+    std::string fileName = "pic.ppm";
 
-    rayTracer.WriteToFile(fileName);
+    rayTracer.WriteToFilePPM(fileName);
 
     return 0;
 }

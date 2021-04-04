@@ -105,7 +105,7 @@ void RayTracer::WriteToFilePPM(const std::string &name)
 
         ColorToRGBA(m_buffer[i], r, g, b, a);
 
-        outputFile << r << ' ' << g << ' ' << b << std::endl;
+        outputFile << (int)r << ' ' << (int)g << ' ' << (int)b << std::endl;
     }
 }
 
