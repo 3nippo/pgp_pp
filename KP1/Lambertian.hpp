@@ -48,7 +48,7 @@ private:
             scatterDir
         );
 
-        attenuation = m_albedo;
+        attenuation = m_albedo->GetColor(hitRecord.u, hitRecord.v);
 
         return true;
     }

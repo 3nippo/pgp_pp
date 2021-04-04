@@ -44,7 +44,7 @@ private:
         );
 
         scattered = Ray(hitRecord.point, reflected);
-        attenuation = m_albedo;
+        attenuation = m_albedo->GetColor(hitRecord.u, hitRecord.v);
 
         return hitRecord.normal.Dot(scattered.direction) > 0;
     }

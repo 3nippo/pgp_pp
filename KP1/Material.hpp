@@ -3,6 +3,7 @@
 #include "Ray.hpp"
 #include "HitRecord.hpp"
 #include "Vector3.hpp"
+#include "Texture.hpp"
 
 namespace RayTracing
 {
@@ -10,9 +11,9 @@ namespace RayTracing
 class Material
 {
 protected:
-    Color m_albedo;
+    const Texture* const m_albedo;
 public:
-    Material(const Color &albedo)
+    Material(const Texture* const albedo)
         : m_albedo(albedo)
     {}
 
