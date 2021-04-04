@@ -31,7 +31,7 @@ Color RayTracer::RayColor(const Ray &ray)
 
     hitRecord.t = INF;
 
-    if (m_scene.Hit(ray, 0, hitRecord))
+    if (m_scene.Hit(ray, 0.001, hitRecord))
     {
         return 0.5 * (hitRecord.normal + Color(1, 1, 1));
     }
