@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vector3.hpp"
+#include <array>
 
 namespace RayTracing
 {
@@ -24,5 +25,23 @@ private:
     {
         return m_color;
     }
+};
+
+class TriangleMapping
+{
+protected:
+    Vector3 m_A;
+    Vector3 m_B;
+    Vector3 m_C;
+};
+
+class SquareMapping
+{
+protected:
+    std::array<TriangleMapping, 2> m_triangleMappings;
+public:
+    SquareMapping(const TriangleMapping &m1, const TriangleMapping &m2)
+        : m_triangleMappings({ m1, m2 })
+    {}
 };
 }; // namespace RayTracing
