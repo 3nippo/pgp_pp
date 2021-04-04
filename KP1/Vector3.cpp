@@ -185,4 +185,9 @@ void Vector3::Clamp(const float tMin, const float tMax)
     z = RayTracing::Clamp(z, tMin, tMax);
 }
 
+Vector3 Vector3::Reflect(const Vector3 &v, const Vector3 &normal)
+{
+    return v - 2 * v.Dot(normal) * normal;
+}
+
 } // namespace RayTracing

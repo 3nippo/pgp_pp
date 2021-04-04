@@ -47,6 +47,8 @@ public:
     
     // uniform distribution
     static Vector3 Random(const float a, const float b);
+
+    static Vector3 Reflect(const Vector3 &v, const Vector3 &normal);
 };
 
 Vector3 operator*(float t, const Vector3 &v);
