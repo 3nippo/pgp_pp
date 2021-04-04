@@ -11,7 +11,7 @@ public:
     virtual Color GetColor(const float u, const float v) const = 0;
 };
 
-class SolidTexture : Texture
+class SolidTexture : public Texture
 {
 private:
     Color m_color;

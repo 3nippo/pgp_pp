@@ -9,7 +9,7 @@
 namespace RayTracing
 {
 
-class ImageTexture : Texture
+class ImageTexture : public Texture
 {
 private:
     const Image &m_image;
