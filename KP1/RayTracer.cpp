@@ -14,26 +14,44 @@ RayTracer::RayTracer(
     const Scene &scene,
     const int width,
     const int height,
-    const int samplesPerPixel
+    const int samplesPerPixel,
+    const int depth
 )
     : m_width(width), 
       m_height(height), 
       m_camera(camera), 
       m_scene(scene),
-      m_samplesPerPixel(samplesPerPixel)
+      m_samplesPerPixel(samplesPerPixel),
+      m_depth(depth)
 {
     m_buffer.resize(width * height * samplesPerPixel);
 }
 
-Color RayTracer::RayColor(const Ray &ray)
+Color RayTracer::RayColor(const Ray &ray, const int depth)
 {
+    if (depth == 0)
+        return Color();
+
     HitRecord hitRecord;
 
     hitRecord.t = INF;
 
     if (m_scene.Hit(ray, 0.001, hitRecord))
     {
-        return 0.5 * (hitRecord.normal + Color(1, 1, 1));
+        Ray scattered;
+        Color attenuation;
+        
+        if (
+            hitRecord.material->scatter(
+                ray,
+                hitRecord,
+                attenuation,
+                scattered
+            )
+        )
+            return attenuation * RayColor(scattered, depth - 1);
+
+        return Color();
     }
 
     float s = 0.5 * (ray.direction.UnitVector().y + 1.0);
@@ -54,7 +72,7 @@ void RayTracer::Render()
 
                 Ray ray = m_camera.GetRay(x, y);
 
-                m_buffer[(w + h * m_width) * m_samplesPerPixel + s] = RayColor(ray);
+                m_buffer[(w + h * m_width) * m_samplesPerPixel + s] = RayColor(ray, m_depth);
             }
             
             Color mean;
