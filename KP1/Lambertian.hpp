@@ -13,8 +13,13 @@ class Lambertian : public Material
 protected:
     const Texture* const m_albedo;
 public:
-    Lambertian(const Texture* const albedo)
-        : m_albedo(albedo)
+    Lambertian(
+        const float transparency,
+        const float reflectance,
+        const Texture* const albedo
+    )
+        : Material(transparency, reflectance),
+          m_albedo(albedo)
     {}
 
 private:

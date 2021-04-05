@@ -13,8 +13,13 @@ class Metallic : public Material
 protected:
     const Texture* const m_albedo;
 public:
-    Metallic(const Texture* const albedo)
-        : m_albedo(albedo)
+    Metallic(
+        const float transparency,
+        const float reflectance,
+        const Texture* const albedo
+    )
+        : Material(transparency, reflectance),
+          m_albedo(albedo)
     {}
 private:
     static Vector3 RandomVectorInUnitSphere()
