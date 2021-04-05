@@ -66,5 +66,6 @@ public:
 using Cube = Figure<FigureId::Cube, SquareFace>;
 using TexturedCube = Figure<FigureId::TexturedCube, MappedSquareFace>;
 using Floor = Figure<FigureId::Floor, MappedSquareFace>;
+using LightSource = Floor;
 
 } // namespace RayTracing
