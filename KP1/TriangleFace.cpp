@@ -38,7 +38,7 @@ const
         hitRecord.t = t;
         hitRecord.u = alpha;
         hitRecord.v = beta;
-        hitRecord.normal = m_normal;
+        hitRecord.SetNormal(ray, m_normal);
         hitRecord.point = ray.At(t);
 
         return true;

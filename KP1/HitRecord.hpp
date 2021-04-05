@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vector3.hpp"
+#include "Ray.hpp"
 
 namespace RayTracing
 {
@@ -17,6 +18,11 @@ struct HitRecord
     Vector3 normal;
     Point3 point;
     const Material *material;
+
+    void SetNormal(const Ray &ray, const Vector3 &pointNormal)
+    {
+        normal = pointNormal.Dot(ray.direction) < 0 ? pointNormal : -pointNormal;
+    }
 };
 
 } // namespace RayTracing
