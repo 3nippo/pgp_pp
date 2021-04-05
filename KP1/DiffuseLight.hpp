@@ -1,34 +1,32 @@
 #pragma once
 
-#include "Ray.hpp"
-#include "HitRecord.hpp"
+#include "Material.hpp"
 #include "Vector3.hpp"
-#include "Texture.hpp"
 
 namespace RayTracing
 {
 
-class Material
+class DiffuseLight : public Material
 {
-protected:
-    const Texture* const m_albedo;
 public:
-    Material(const Texture* const albedo)
-        : m_albedo(albedo)
-    {}
-
+    using Material::Material;
+private:
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
         Color &attenuation,
         Ray &scattered
-    ) const = 0;
+    ) const override
+    {
+        return false;
+    }
+
 
     virtual Color Emitted(
         const HitRecord &hitRecord
-    ) const
+    ) const override
     {
-        return Color(0, 0, 0);
+        return m_albedo->GetColor(hitRecord.u, hitRecord.v);
     }
 };
 
