@@ -42,7 +42,7 @@ Color RayTracer::RayColor(const Ray &ray, const int depth)
         Color attenuation;
         
         if (
-            hitRecord.material->scatter(
+            hitRecord.material->Scatter(
                 ray,
                 hitRecord,
                 attenuation,
