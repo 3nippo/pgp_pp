@@ -22,7 +22,6 @@ public:
     Scene(
         const Cube &cube1,
         const TexturedCube &cube2,
-        const Cube &cube3,
         const Floor &floor,
         const LightSource &lightSource
     )
