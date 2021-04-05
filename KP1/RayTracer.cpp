@@ -29,34 +29,28 @@ RayTracer::RayTracer(
 
 Color RayTracer::RayColor(const Ray &ray, const int depth)
 {
-    if (depth == 0)
-        return Color();
-
     HitRecord hitRecord;
 
     hitRecord.t = INF;
 
-    if (m_scene.Hit(ray, 0.001, hitRecord))
-    {
-        Ray scattered;
-        Color attenuation;
-        
-        if (
-            hitRecord.material->Scatter(
-                ray,
-                hitRecord,
-                attenuation,
-                scattered
-            )
-        )
-            return attenuation * RayColor(scattered, depth - 1);
-
+    if (depth == 0 || !m_scene.Hit(ray, 0.001, hitRecord))
         return Color();
-    }
 
-    float s = 0.5 * (ray.direction.UnitVector().y + 1.0);
+    Ray scattered;
+    Color attenuation;
+    Color emitted = hitRecord.material->Emitted(hitRecord);
+    
+    if (
+        hitRecord.material->Scatter(
+            ray,
+            hitRecord,
+            attenuation,
+            scattered
+        )
+    )
+        return emitted + attenuation * RayColor(scattered, depth - 1);
 
-    return (1 - s) * Color(1, 1, 1) + s * Color(0.5, 0.7, 1.0);
+    return emitted;
 }
 
 void RayTracer::Render()
