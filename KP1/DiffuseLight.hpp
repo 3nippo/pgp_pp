@@ -2,14 +2,20 @@
 
 #include "Material.hpp"
 #include "Vector3.hpp"
+#include "Texture.hpp"
 
 namespace RayTracing
 {
 
 class DiffuseLight : public Material
 {
+protected:
+    const Texture* const m_emitterTexture;
 public:
-    using Material::Material;
+    DiffuseLight(const Texture* const emitterMaterial)
+        : m_emitterTexture(emitterMaterial)
+    {}
+
 private:
     virtual bool Scatter(
         const Ray &ray,
@@ -26,7 +32,7 @@ private:
         const HitRecord &hitRecord
     ) const override
     {
-        return m_albedo->GetColor(hitRecord.u, hitRecord.v);
+        return m_emitterTexture->GetColor(hitRecord.u, hitRecord.v);
     }
 };
 
