@@ -7,7 +7,36 @@ namespace RayTracing
 {
 
 template<>
-void FigureFacesConstructor::ConstructFigureFaces
+void FigureFacesConstructor::ConstructFigureFaces<FigureId::Floor>
+(
+    std::vector<MappedSquareFace> &faces,
+    const Point3 &origin,
+    const float radius
+)
+{
+    float halfA = radius / sqrtf(3);
+
+    faces.emplace_back(
+        Point3{ -halfA, 0, -halfA },
+        Point3{ +halfA, 0, -halfA },
+        Point3{ +halfA, 0, +halfA },
+        Point3{ -halfA, 0, +halfA },
+        origin,
+        TriangleMapping{
+            Point3{ 0, 0, 0},
+            Point3{ 1, 0, 0},
+            Point3{ 1, 1, 0}
+        },
+        TriangleMapping{
+            Point3{ 0, 0, 0},
+            Point3{ 0, 1, 0},
+            Point3{ 1, 1, 0}
+        }
+    );
+}
+
+template<>
+void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
 (
     std::vector<SquareFace> &faces,
     const Point3 &origin,
@@ -72,7 +101,7 @@ void FigureFacesConstructor::ConstructFigureFaces
 }
 
 template<>
-void FigureFacesConstructor::ConstructFigureFaces
+void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
 (
     std::vector<MappedSquareFace> &faces,
     const Point3 &origin,

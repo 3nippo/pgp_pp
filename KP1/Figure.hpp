@@ -14,7 +14,7 @@
 namespace RayTracing
 {
 
-template <typename Face>
+template <FigureId figureId, typename Face>
 class Figure 
 {
 private:
@@ -31,7 +31,7 @@ public:
     ) 
         : m_origin(origin), m_radius(radius), m_material(material)
     {
-        FigureFacesConstructor::ConstructFigureFaces(m_faces, m_origin, m_radius);
+        FigureFacesConstructor::ConstructFigureFaces<figureId>(m_faces, m_origin, m_radius);
     }
 
     bool Hit(
@@ -57,7 +57,8 @@ public:
     }
 };
 
-using Cube = Figure<SquareFace>;
-using TexturedCube = Figure<MappedSquareFace>;
+using Cube = Figure<FigureId::Cube, SquareFace>;
+using TexturedCube = Figure<FigureId::TexturedCube, MappedSquareFace>;
+using Floor = Figure<FigureId::Floor, MappedSquareFace>;
 
 } // namespace RayTracing
