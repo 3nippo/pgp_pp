@@ -38,8 +38,8 @@ Color RayTracer::RayColor(const Ray &ray, const int depth)
 
     Ray scattered;
     Color attenuation;
-    Color emitted = hitRecord.material->Emitted(hitRecord);
-    
+    Color computed = hitRecord.material->Emitted(hitRecord);
+
     if (
         hitRecord.material->Scatter(
             ray,
@@ -47,10 +47,18 @@ Color RayTracer::RayColor(const Ray &ray, const int depth)
             attenuation,
             scattered
         )
+        && hitRecord.material->reflectance != 0
     )
-        return emitted + attenuation * RayColor(scattered, depth - 1);
+        computed += hitRecord.material->reflectance * attenuation * RayColor(scattered, depth - 1);
 
-    return emitted;
+    if (hitRecord.material->transparency != 0)
+        computed += \
+            hitRecord.material->transparency * RayColor(
+                Ray(hitRecord.point, ray.direction),
+                depth - 1
+            );
+
+    return computed;
 }
 
 void RayTracer::Render()
