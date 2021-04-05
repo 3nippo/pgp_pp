@@ -10,8 +10,13 @@ namespace RayTracing
 
 class Lambertian : public Material
 {
+protected:
+    const Texture* const m_albedo;
 public:
-    using Material::Material;
+    Lambertian(const Texture* const albedo)
+        : m_albedo(albedo)
+    {}
+
 private:
     static Vector3 RandomVectorInUnitSphere()
     {

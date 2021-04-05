@@ -10,13 +10,7 @@ namespace RayTracing
 
 class Material
 {
-protected:
-    const Texture* const m_albedo;
 public:
-    Material(const Texture* const albedo)
-        : m_albedo(albedo)
-    {}
-
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,

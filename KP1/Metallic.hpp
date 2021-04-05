@@ -10,8 +10,12 @@ namespace RayTracing
 
 class Metallic : public Material
 {
+protected:
+    const Texture* const m_albedo;
 public:
-    using Material::Material;
+    Metallic(const Texture* const albedo)
+        : m_albedo(albedo)
+    {}
 private:
     static Vector3 RandomVectorInUnitSphere()
     {
