@@ -23,6 +23,7 @@ public:
     template<FigureId figureId, typename Face>
     static void ConstructFigureFaces(
         std::vector<Face> &faces,
+        std::vector<int> &facesMaterialIds,
         const Point3 &origin,
         const float radius
     )

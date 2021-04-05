@@ -21,18 +21,20 @@ private:
     const Point3 m_origin;
     const float m_radius;
     std::vector<Face> m_faces;
+    std::vector<int> m_facesMaterialIds;
     std::vector<const Material*> m_materials;
 
 public:
     Figure(
         const Point3 &origin, 
-        const float radius
+        const float radius,
+        const std::vector<const Material*> &materials
     ) 
-        : m_origin(origin), m_radius(radius)
+        : m_origin(origin), m_radius(radius), m_materials(materials)
     {
         FigureFacesConstructor::ConstructFigureFaces<figureId>(
             m_faces, 
-            m_materials,
+            m_facesMaterialIds,
             m_origin, 
             m_radius
         );
@@ -53,7 +55,7 @@ public:
             if (m_faces[i].Hit(ray, tMin, hitRecord.t, hitRecord))
             {
                 hitAtLeastOnce = true;
-                hitRecord.material = m_materials[i];
+                hitRecord.material = m_materials[m_facesMaterialIds[i]];
             }
         }
 

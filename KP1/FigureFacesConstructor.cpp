@@ -6,10 +6,12 @@
 namespace RayTracing
 {
 
+// Given materials: Floor
 template<>
 void FigureFacesConstructor::ConstructFigureFaces<FigureId::Floor>
 (
     std::vector<MappedSquareFace> &faces,
+    std::vector<int> &facesMaterialIds,
     const Point3 &origin,
     const float radius
 )
@@ -33,12 +35,16 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Floor>
             Point3{ 1, 1, 0}
         }
     );
+
+    facesMaterialIds.push_back(0);
 }
 
+// Given materials: Face
 template<>
 void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
 (
     std::vector<SquareFace> &faces,
+    std::vector<int> &facesMaterialIds,
     const Point3 &origin,
     const float radius
 )
@@ -53,6 +59,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ -halfA, +halfA, +halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
 
     // back face
     faces.emplace_back(
@@ -62,6 +69,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ -halfA, +halfA, -halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
 
     // left face
     faces.emplace_back(
@@ -71,6 +79,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ -halfA, -halfA, +halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
     
     // right face
     faces.emplace_back(
@@ -80,6 +89,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ +halfA, -halfA, +halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
     
     // bottom face
     faces.emplace_back(
@@ -89,6 +99,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ -halfA, -halfA, +halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
 
     // top face
     faces.emplace_back(
@@ -98,12 +109,15 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
         Point3{ -halfA, +halfA, +halfA },
         origin
     );
+    facesMaterialIds.push_back(0);
 }
 
+// Given materials: Face
 template<>
 void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
 (
     std::vector<MappedSquareFace> &faces,
+    std::vector<int> &facesMaterialIds,
     const Point3 &origin,
     const float radius
 )
@@ -128,6 +142,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 1, 0, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
 
     // back face
     faces.emplace_back(
@@ -147,6 +162,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 0, 0, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
 
     // left face
     faces.emplace_back(
@@ -166,6 +182,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 1, 0, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
     
     // right face
     faces.emplace_back(
@@ -185,6 +202,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 0, 0, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
     
     // bottom face
     faces.emplace_back(
@@ -204,6 +222,7 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 1, 0, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
 
     // top face
     faces.emplace_back(
@@ -223,5 +242,6 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
             Point3{ 1, 1, 0 }
         }
     );
+    facesMaterialIds.push_back(0);
 }
 } // namespace RayTracing
