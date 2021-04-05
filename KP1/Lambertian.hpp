@@ -31,7 +31,7 @@ private:
         return RandomVectorInUnitSphere().UnitVector();
     }
 
-    virtual bool scatter(
+    virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
         Color &attenuation,

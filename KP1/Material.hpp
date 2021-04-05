@@ -17,12 +17,19 @@ public:
         : m_albedo(albedo)
     {}
 
-    virtual bool scatter(
+    virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
         Color &attenuation,
         Ray &scattered
     ) const = 0;
+
+    virtual Color Emitted(
+        const HitRecord &hitRecord
+    )
+    {
+        return Color(0, 0, 0);
+    }
 };
 
 } // namespace RayTracing
