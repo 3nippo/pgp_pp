@@ -88,7 +88,7 @@ int main()
         /* RayTracing::Vector3{ 60, 10, 30 } */
     );
 
-    int sqrtSamplesPerPixel = 5;
+    int sqrtSamplesPerPixel = 10;
     int depth = 5;
 
     RayTracing::RayTracer rayTracer(
