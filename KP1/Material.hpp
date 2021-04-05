@@ -10,16 +10,16 @@ namespace RayTracing
 
 class Material
 {
-protected:
-    float m_transparency;
-    float m_reflectance;
+public:
+    float transparency;
+    float reflectance;
 public:
     Material(
         const float transparency,
         const float reflectance
     )
-        : m_transparency(transparency),
-          m_reflectance(reflectance)
+        : transparency(transparency),
+          reflectance(reflectance)
     {}
 
     virtual bool Scatter(
