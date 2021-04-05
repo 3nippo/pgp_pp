@@ -13,7 +13,8 @@ protected:
     const Texture* const m_emitterTexture;
 public:
     DiffuseLight(const Texture* const emitterMaterial)
-        : m_emitterTexture(emitterMaterial)
+        : Material(0, 0),
+          m_emitterTexture(emitterMaterial)
     {}
 
 private:
