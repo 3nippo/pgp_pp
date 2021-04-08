@@ -14,7 +14,8 @@ enum class FigureId
 {
     Cube,
     TexturedCube,
-    Floor
+    Floor,
+    FancyCube
 };
 
 class FigureFacesConstructor

@@ -19,7 +19,7 @@ int main()
 
     const float radius = 6;
 
-    SolidTexture mirrorTexture(Color(0.8, 0.8, 0.8));
+    SolidTexture mirrorTexture(Color(0, 0.749, 1));
     
     std::string textureFileName("morshu.data");
 
@@ -27,31 +27,47 @@ int main()
 
     ImageTexture imageTexture(image, Color(1, 1, 1));
 
-    const Lambertian lambertian2(
+    SolidTexture pinkTexture(Color(1, 0.07, 0.57));
+    Lambertian pinkMaterial(0, 1, &pinkTexture);
+
+    Lambertian lambertian2(
+        0.6,
+        1,
         &imageTexture
     );
 
-    const Metallic metallic(
+    Metallic metallic(
+        0.5,
+        1,
         &mirrorTexture
     );
 
-    Cube cube1(
-        RayTracing::Vector3{ 0, 0, 0 },
+    SolidTexture edgeLightTexture(Color(1, 1, 1));
+    DiffuseLight edgeLightMaterial(&edgeLightTexture);
+
+    FancyCube cube1(
+        Vector3{ 0, 0, 0 },
         radius,
-        { &metallic }
+        { &metallic, &pinkMaterial, &edgeLightMaterial }
     );
 
     TexturedCube cube2(
-        RayTracing::Vector3{ 15, 0, 0 },
+        Vector3{ 15, 0, 0 },
         radius,
         { &lambertian2 }
+    );
+
+    Cube cube3(
+        Vector3{ 7.5, 0, -2 * radius / sqrtf(3) },
+        radius,
+        { &pinkMaterial }
     );
 
     std::string floorFileName = "floor.data";
 
     Image floorImage(floorFileName);
-    ImageTexture floorTexture(floorImage, Color(1, 1, 1));
-    Lambertian floorMaterial(&floorTexture);
+    ImageTexture floorTexture(floorImage, Color(2, 2, 2));
+    Lambertian floorMaterial(0, 1, &floorTexture);
     
     float floorRadius = 10 * radius;
 
@@ -67,12 +83,12 @@ int main()
     DiffuseLight lightMaterial(&lightTexture);
 
     LightSource lightSource(
-        { 7.5f, 4 * radius / sqrtf(3), 0 },
+        { 2 * radius / sqrtf(3), 4 * radius / sqrtf(3), 0 },
         lightRadius,
         { &lightMaterial }
     );
 
-    RayTracing::Scene scene(cube1, cube2, floor, lightSource);
+    RayTracing::Scene scene(cube1, cube2, floor, lightSource, cube3);
     
     int width = 1024,
         height = 768;
@@ -83,13 +99,13 @@ int main()
         width, 
         height, 
         horizontalViewDegrees,
-        RayTracing::Vector3{ 6 / sqrtf(3), 0, 0 },
-        RayTracing::Vector3{ 30, 5, 15 }
+        RayTracing::Vector3(),
+        RayTracing::Vector3{ 15, 0, 0 }
         /* RayTracing::Vector3{ 60, 10, 30 } */
     );
 
-    int sqrtSamplesPerPixel = 10;
-    int depth = 5;
+    int sqrtSamplesPerPixel = 4;
+    int depth = 10;
 
     RayTracing::RayTracer rayTracer(
         camera,
