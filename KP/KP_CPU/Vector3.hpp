@@ -68,4 +68,6 @@ void ColorToRGBA(
 
 std::ostream& operator<<(std::ostream &stream, const Color &v);
 
+std::istream& operator>>(std::istream &istream, Vector3 &v);
+
 } // namespace RayTracing

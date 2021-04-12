@@ -190,4 +190,10 @@ Vector3 Vector3::Reflect(const Vector3 &v, const Vector3 &normal)
     return v - 2 * v.Dot(normal) * normal;
 }
 
+std::istream& operator>>(std::istream &istream, Vector3 &v)
+{
+    istream >> v.x >> v.y >> v.z;
+
+    return istream;
+}
 } // namespace RayTracing

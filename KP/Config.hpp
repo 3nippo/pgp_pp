@@ -2,6 +2,7 @@
 
 #include <string>
 #include <array>
+#include <iostream>
 #include "./KP_CPU/Vector3.hpp"
 
 struct Trajectory
@@ -83,3 +84,14 @@ int recursionDepth;
 float sqrtSamplesPerPixel;
 
 }; // Config
+
+
+std::istream& operator>>(std::istream &istream, Config& config);
+
+std::istream& operator>>(std::istream &istream, Trajectory& trajectory);
+
+std::istream& operator>>(std::istream &istream, FigureData& figureData);
+
+std::istream& operator>>(std::istream &istream, FloorData& floorData);
+
+std::istream& operator>>(std::istream &istream, LightSource& lightSource);
