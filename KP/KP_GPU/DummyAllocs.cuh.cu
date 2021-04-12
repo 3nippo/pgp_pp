@@ -48,19 +48,19 @@ void DeallocInstance(Base** _texture)
 }
 
 template<typename Derived, typename Base, typename ... Args>
-class CudaHeapMemory
+class CudaHeapObject
 {
 public:
     Base **ptr = nullptr;
 public:
-    CudaHeapMemory(Args ... args)
+    CudaHeapObject(Args ... args)
     {
         checkCudaErrors(cudaMalloc(&ptr, sizeof(Base**)));
 
         AllocInstance<Derived>(ptr, args...);
     }
     
-    ~CudaHeapMemory()
+    ~CudaHeapObject()
     {
         DeallocInstance(ptr);
 
