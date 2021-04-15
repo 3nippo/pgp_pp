@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/Users/ilyamazin/mai/pgp_pp/KP1/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/ilyamazin/mai/pgp_pp/KP1  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk -mmacosx-version-min=10.15 -std=gnu++11 -o CMakeFiles/RayTracer.dir/main.o -c /Users/ilyamazin/mai/pgp_pp/KP1/main.cpp",
-  "file": "/Users/ilyamazin/mai/pgp_pp/KP1/main.cpp"
-}
-]
