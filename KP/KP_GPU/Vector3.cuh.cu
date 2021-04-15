@@ -73,7 +73,7 @@ public:
     __device__
     void AtomicExch(const Vector3& v);
 
-    __device__
+    __host__ __device__
     Vector3& Clamp(const float tMin, const float tMax);
     
     __host__ __device__
@@ -98,5 +98,7 @@ void ColorToRGBA(
 );
 
 std::ostream& operator<<(std::ostream &stream, const Color &v);
+__host__ 
+std::istream& operator>>(std::istream &istream, Vector3 &v);
 
 } // namespace RayTracing

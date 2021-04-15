@@ -3,7 +3,10 @@
 #include <string>
 #include <array>
 #include <iostream>
-#include "./KP_CPU/Vector3.hpp"
+#include "Vector3.cuh.cu"
+
+namespace RayTracing
+{
 
 struct Trajectory
 {
@@ -46,7 +49,7 @@ float reflectance;
 
 }; // FloorData
 
-struct LightSource
+struct LightSourceData
 {
 
 RayTracing::Vector3 origin;
@@ -77,11 +80,11 @@ FloorData floorData;
 
 int lightSourcesNum;
 
-std::array<LightSource, 4> lightSources;
+std::array<LightSourceData, 4> lightSources;
 
 int recursionDepth;
 
-float sqrtSamplesPerPixel;
+float samplesPerPixel;
 
 }; // Config
 
@@ -94,4 +97,6 @@ std::istream& operator>>(std::istream &istream, FigureData& figureData);
 
 std::istream& operator>>(std::istream &istream, FloorData& floorData);
 
-std::istream& operator>>(std::istream &istream, LightSource& lightSource);
+std::istream& operator>>(std::istream &istream, LightSourceData& lightSourceData);
+
+} // namespace RayTracing

@@ -19,7 +19,7 @@ public:
     {}
 
 private:
-    __device__
+    __host__ __device__
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
@@ -30,7 +30,7 @@ private:
         return false;
     }
 
-    __device__
+    __host__ __device__
     virtual Color Emitted(
         const HitRecord &hitRecord
     ) const override
@@ -38,7 +38,7 @@ private:
         return (*m_emitterTexture)->GetColor(hitRecord.u, hitRecord.v);
     }
 
-    __device__
+    __host__ __device__
     virtual bool Emits() const override
     {
         return true;

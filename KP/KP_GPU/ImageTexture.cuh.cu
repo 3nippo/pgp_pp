@@ -9,10 +9,17 @@
 namespace RayTracing
 {
 
-class ImageTexture : public Texture
+template<bool isGPU>
+class ImageTexture
+{
+
+};
+
+template<>
+class ImageTexture<true> : public Texture
 {
 private:
-    const cudaTextureObject_t m_cudaTexture;
+    const cudaTextureObject_t m_texResource;
     const Color m_color;
 
 public:
@@ -21,15 +28,47 @@ public:
         const cudaTextureObject_t cudaTexture,
         const Color &color
     )
-        : m_cudaTexture(cudaTexture),
+        : m_texResource(cudaTexture),
           m_color(color)
     {}
 
 private:
-    __device__
+    __host__ __device__
     virtual Color GetColor(const float u, const float v) const override
     {
-        return m_color * tex2D<float4>(m_cudaTexture, u, v);
+        #ifdef __CUDA_ARCH__
+        return m_color * tex2D<float4>(m_texResource, u, v);
+        #else
+        return Color();
+        #endif
+    }
+};
+
+template<>
+class ImageTexture<false> : public Texture
+{
+private:
+    const Image m_texResource;
+    const Color m_color;
+
+public:
+    ImageTexture(
+        const Image image,
+        const Color &color
+    )
+        : m_texResource(image),
+          m_color(color)
+    {}
+
+private:
+    __host__ __device__
+    virtual Color GetColor(const float u, const float v) const override
+    {
+        #ifdef __CUDA_ARCH__
+        return Color();
+        #else
+        return m_color * m_texResource.GetColor(u, v);
+        #endif
     }
 };
 

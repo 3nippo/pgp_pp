@@ -1,8 +1,12 @@
-#include "FigureFacesConstructor.cuh.cu"
-#include "SquareFace.cuh.cu"
-#include <cmath>
-#include "Texture.cuh.cu"
-#include "utils.cuh.cu"
+#pragma once
+
+#include <vector>
+#include <cassert>
+
+#include "Vector3.cuh.cu"
+#include "PolygonsManager.cuh.cu"
+#include "Material.cuh.cu"
+#include "TriangleFace.cuh.cu"
 
 namespace RayTracing
 {
@@ -10,14 +14,14 @@ namespace RayTracing
 namespace 
 {
 
+template<bool isGPU>
 void PlaceSquaresOnEdge(
-    std::vector<SquareFace> &faces,
-    std::vector<int> &facesMaterialIds,
+    PolygonsManager<isGPU> &polygonsManager,
+    const Material * const * const material,
     const Point3 &start,
     const Vector3 &up,
     const Vector3 &right,
     const int n,
-    const int materialIndex,
     const float a
 )
 {
@@ -26,382 +30,409 @@ void PlaceSquaresOnEdge(
 
     for (int i = 0; i < n; ++i, current += shift)
     {
-        faces.emplace_back(
+        polygonsManager.ConstructQuad(
             up,
             up + 2 * right,
             -up + 2 * right,
             -up,
-            current
+            current,
+            material
         );
-        facesMaterialIds.push_back(materialIndex);
     }
 }
 
 } // namespacce
 
+enum class FigureId
+{
+    Cube,
+    TexturedCube,
+    Floor,
+    FancyCube,
+    LightSource=Floor
+};
+
+template<FigureId figureId, bool isGPU>
+struct FigureConstructor
+{
+    static void ConstructFigure(
+        PolygonsManager<isGPU> &polygonsManager,
+        const std::vector<Material**> &materials,
+        const Point3 &origin,
+        const float radius,
+        const int edgeLightsNum
+    )
+    {
+        assert(("Not implemented", false));
+    }
+
+    static void ConstructFigureByPoints(
+        PolygonsManager<isGPU> &polygonsManager,
+        const std::vector<Material**> &materials,
+        const Vector3 &A,
+        const Vector3 &B,
+        const Vector3 &C,
+        const Vector3 &D
+    )
+    {
+        assert(("Not implemented", false));
+    }
+};
+
 // Given materials: BigFace, SmallFace, Light
-template<>
-void FigureFacesConstructor::ConstructFigureFaces<FigureId::FancyCube>
-(
-    std::vector<SquareFace> &faces,
-    std::vector<int> &facesMaterialIds,
+template<bool isGPU>
+struct FigureConstructor<FigureId::FancyCube, isGPU>
+{
+static void ConstructFigure(
+    PolygonsManager<isGPU> &polygonsManager,
+    const std::vector<Material**> &materials,
     const Point3 &origin,
-    const float radius
+    const float radius,
+    const int edgeLightsNum
 )
 {
-    constexpr int n = 6;
-
     float halfA = radius / sqrtf(3),
           a = halfA * 2,
-          shift = halfA / n;
+          shift = halfA / edgeLightsNum;
     
     // front face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, +halfA },
         Point3{ +halfA, -halfA, +halfA },
         Point3{ +halfA, +halfA, +halfA },
         Point3{ -halfA, +halfA, +halfA },
-        origin + Vector3{ 0, +shift, +shift }
+        origin + Vector3{ 0, +shift, +shift },
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
     
     // back face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA, -halfA },
         Point3{ +halfA, +halfA, -halfA },
         Point3{ -halfA, +halfA, -halfA },
-        origin + Vector3{ 0, +shift, -shift }
+        origin + Vector3{ 0, +shift, -shift },
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
 
     // left to back
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA } + Vector3{ -shift, +shift, 0 },
         Point3{ -halfA, +halfA, -halfA } + Vector3{ -shift, +shift, 0 },
         Point3{ -halfA, +halfA, -halfA } + Vector3{ 0, +shift, -shift },
         Point3{ -halfA, -halfA, -halfA } + Vector3{ 0, +shift, -shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // left to front
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, +halfA, +halfA } + Vector3{ -shift, +shift, 0 },
         Point3{ -halfA, -halfA, +halfA } + Vector3{ -shift, +shift, 0 },
         Point3{ -halfA, -halfA, +halfA } + Vector3{ 0, +shift, +shift },
         Point3{ -halfA, +halfA, +halfA } + Vector3{ 0, +shift, +shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // left face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA },
         Point3{ -halfA, +halfA, -halfA },
         Point3{ -halfA, +halfA, +halfA },
         Point3{ -halfA, -halfA, +halfA },
-        origin + Vector3{ -shift, +shift, 0 }
+        origin + Vector3{ -shift, +shift, 0 },
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
     
     // right to back
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, -halfA, -halfA } + Vector3{ +shift, +shift, 0 },
         Point3{ +halfA, +halfA, -halfA } + Vector3{ +shift, +shift, 0 },
         Point3{ +halfA, +halfA, -halfA } + Vector3{ 0, +shift, -shift },
         Point3{ +halfA, -halfA, -halfA } + Vector3{ 0, +shift, -shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // right to front
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, +halfA, +halfA } + Vector3{ +shift, +shift, 0 },
         Point3{ +halfA, -halfA, +halfA } + Vector3{ +shift, +shift, 0 },
         Point3{ +halfA, -halfA, +halfA } + Vector3{ 0, +shift, +shift },
         Point3{ +halfA, +halfA, +halfA } + Vector3{ 0, +shift, +shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // right face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, -halfA, -halfA },
         Point3{ +halfA, +halfA, -halfA },
         Point3{ +halfA, +halfA, +halfA },
         Point3{ +halfA, -halfA, +halfA },
-        origin + Vector3{ +shift, +shift, 0 }
+        origin + Vector3{ +shift, +shift, 0 },
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
     
     // bottom to front
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, -halfA, +halfA },
         Point3{ -halfA, -halfA, +halfA },
         Point3{ -halfA, -halfA + shift, +halfA + shift },
         Point3{ +halfA, -halfA + shift, +halfA + shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // bottom to back
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA + shift, -halfA - shift },
         Point3{ -halfA, -halfA + shift, -halfA - shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // bottom to right
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA, +halfA },
         Point3{ +halfA + shift, -halfA + shift, +halfA },
         Point3{ +halfA + shift, -halfA + shift, -halfA },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // bottom to left
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA },
         Point3{ -halfA, -halfA, +halfA },
         Point3{ -halfA - shift, -halfA + shift, +halfA },
         Point3{ -halfA - shift, -halfA + shift, -halfA },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // bottom face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA, -halfA },
         Point3{ +halfA, -halfA, +halfA },
         Point3{ -halfA, -halfA, +halfA },
-        origin
+        origin,
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
 
     // top to front
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, +halfA, +halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ -halfA, +halfA, +halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ -halfA, +halfA, +halfA } + Vector3{ 0, +shift, +shift },
         Point3{ +halfA, +halfA, +halfA } + Vector3{ 0, +shift, +shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // top to back
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, +halfA, -halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ +halfA, +halfA, -halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ +halfA, +halfA, -halfA } + Vector3{ 0, +shift, -shift },
         Point3{ -halfA, +halfA, -halfA } + Vector3{ 0, +shift, -shift },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // top to left
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, +halfA, -halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ -halfA, +halfA, +halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ -halfA, +halfA, +halfA } + Vector3{ -shift, +shift, 0 },
         Point3{ -halfA, +halfA, -halfA } + Vector3{ -shift, +shift, 0 },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // top to right
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ +halfA, +halfA, -halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ +halfA, +halfA, +halfA } + Vector3{ 0, 2*shift, 0 },
         Point3{ +halfA, +halfA, +halfA } + Vector3{ +shift, +shift, 0 },
         Point3{ +halfA, +halfA, -halfA } + Vector3{ +shift, +shift, 0 },
-        origin
+        origin,
+        materials[1]
     );
-    facesMaterialIds.push_back(1);
 
     // top face
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, +halfA, -halfA },
         Point3{ +halfA, +halfA, -halfA },
         Point3{ +halfA, +halfA, +halfA },
         Point3{ -halfA, +halfA, +halfA },
-        origin + Vector3{ 0, 2*shift, 0 }
+        origin + Vector3{ 0, 2*shift, 0 },
+        materials[0]
     );
-    facesMaterialIds.push_back(0);
     
     const float lightHalfA = shift / 4,
                 eps = 0.001;
-    
 
     // front bottom
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-halfA, -halfA + shift / 2, -eps + halfA + shift / 2),
         Vector3{ 0, +lightHalfA, +lightHalfA },
         Vector3{ +lightHalfA, 0, 0 },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // back bottom
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-halfA, -halfA + shift / 2, +eps - halfA - shift / 2),
         Vector3{ 0, +lightHalfA, -lightHalfA },
         Vector3{ +lightHalfA, 0, 0 },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // left bottom
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(+eps -halfA - shift / 2, -halfA + shift/2, -halfA),
         Vector3{ -lightHalfA, +lightHalfA, 0 },
         Vector3{ 0, 0, lightHalfA },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // right bottom
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-eps +halfA + shift / 2, -halfA + shift/2, -halfA),
         Vector3{ +lightHalfA, +lightHalfA, 0 },
         Vector3{ 0, 0, lightHalfA },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // front right
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-eps + halfA + shift/2, -halfA + shift/2, -eps + halfA + shift/2),
         Vector3{ lightHalfA, 0, -lightHalfA },
         Vector3{ 0, lightHalfA, 0},
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // front left
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(+eps - halfA - shift/2, -halfA + shift/2, -eps + halfA + shift/2),
         Vector3{ lightHalfA, 0, lightHalfA },
         Vector3{ 0, lightHalfA, 0},
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // back right
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-eps + halfA + shift/2, -halfA + shift/2, +eps - halfA - shift/2),
         Vector3{ lightHalfA, 0, lightHalfA },
         Vector3{ 0, lightHalfA, 0},
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // back left
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(+eps - halfA - shift/2, -halfA + shift/2, +eps - halfA - shift/2),
         Vector3{ lightHalfA, 0, -lightHalfA },
         Vector3{ 0, lightHalfA, 0},
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // top front
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-halfA, +halfA + 3 / 2.0f * shift, -eps + halfA + shift / 2),
         Vector3{ 0, +lightHalfA, -lightHalfA },
         Vector3{ +lightHalfA, 0, 0 },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // top back
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-halfA, +halfA + 3 / 2.0f * shift, +eps - halfA - shift / 2),
         Vector3{ 0, +lightHalfA, +lightHalfA },
         Vector3{ +lightHalfA, 0, 0 },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // top left
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(+eps -halfA - shift / 2, +halfA + 3 / 2.0f * shift, -halfA),
         Vector3{ +lightHalfA, +lightHalfA, 0 },
         Vector3{ 0, 0, lightHalfA },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 
     // top right
     PlaceSquaresOnEdge(
-        faces,
-        facesMaterialIds,
+        polygonsManager,
+        materials[2],
         origin + Vector3(-eps +halfA + shift / 2, +halfA + 3 / 2.0f * shift, -halfA),
         Vector3{ -lightHalfA, +lightHalfA, 0 },
         Vector3{ 0, 0, lightHalfA },
-        n,
-        2,
+        edgeLightsNum,
         a
     );
 }
+}; // FancyCube
 
 // Given materials: Floor
-template<>
-void FigureFacesConstructor::ConstructFigureFaces<FigureId::Floor>
-(
-    std::vector<MappedSquareFace> &faces,
-    std::vector<int> &facesMaterialIds,
+template<bool isGPU>
+struct FigureConstructor<FigureId::Floor, isGPU>
+{
+static void ConstructFigure(
+    PolygonsManager<isGPU> &polygonsManager,
+    const std::vector<Material**> &materials,
     const Point3 &origin,
-    const float radius
+    const float radius,
+    const int edgeLightsNum
 )
 {
     float halfA = radius / sqrtf(3);
 
-    faces.emplace_back(
+    polygonsManager.ConstructQuad(
         Point3{ -halfA, 0, -halfA },
         Point3{ +halfA, 0, -halfA },
         Point3{ +halfA, 0, +halfA },
         Point3{ -halfA, 0, +halfA },
         origin,
+        materials[0],
         TriangleMapping{
             Point3{ 0, 0, 0},
             Point3{ 1, 0, 0},
@@ -413,213 +444,36 @@ void FigureFacesConstructor::ConstructFigureFaces<FigureId::Floor>
             Point3{ 1, 1, 0}
         }
     );
-
-    facesMaterialIds.push_back(0);
 }
 
-// Given materials: Face
-template<>
-void FigureFacesConstructor::ConstructFigureFaces<FigureId::Cube>
-(
-    std::vector<SquareFace> &faces,
-    std::vector<int> &facesMaterialIds,
-    const Point3 &origin,
-    const float radius
+static void ConstructFigureByPoints(
+    PolygonsManager<isGPU> &polygonsManager,
+    const std::vector<Material**> &materials,
+    const Vector3 &A,
+    const Vector3 &B,
+    const Vector3 &C,
+    const Vector3 &D
 )
 {
-    float halfA = radius / sqrtf(3);
-    
-    // front face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, +halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        origin
+    polygonsManager.ConstructQuad(
+        A,
+        B,
+        C,
+        D,
+        { 0, 0, 0, 0 },
+        materials[0],
+        TriangleMapping{
+            Point3{ 0, 0, 0},
+            Point3{ 1, 0, 0},
+            Point3{ 1, 1, 0}
+        },
+        TriangleMapping{
+            Point3{ 0, 0, 0},
+            Point3{ 0, 1, 0},
+            Point3{ 1, 1, 0}
+        }
     );
-    facesMaterialIds.push_back(0);
-
-    // back face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ -halfA, +halfA, -halfA },
-        origin
-    );
-    facesMaterialIds.push_back(0);
-
-    // left face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ -halfA, +halfA, -halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        Point3{ -halfA, -halfA, +halfA },
-        origin
-    );
-    facesMaterialIds.push_back(0);
-    
-    // right face
-    faces.emplace_back(
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        origin
-    );
-    facesMaterialIds.push_back(0);
-    
-    // bottom face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        Point3{ -halfA, -halfA, +halfA },
-        origin
-    );
-    facesMaterialIds.push_back(0);
-
-    // top face
-    faces.emplace_back(
-        Point3{ -halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        origin
-    );
-    facesMaterialIds.push_back(0);
 }
+}; // Floor
 
-// Given materials: Face
-template<>
-void FigureFacesConstructor::ConstructFigureFaces<FigureId::TexturedCube>
-(
-    std::vector<MappedSquareFace> &faces,
-    std::vector<int> &facesMaterialIds,
-    const Point3 &origin,
-    const float radius
-)
-{
-    float halfA = radius / sqrtf(3);
-    
-    // front face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, +halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 }
-        },
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 0, 0, 0 },
-            Point3{ 1, 0, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-
-    // back face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ -halfA, +halfA, -halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 1, 1, 0 },
-            Point3{ 0, 1, 0 },
-            Point3{ 0, 0, 0 }
-        },
-        TriangleMapping{
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 },
-            Point3{ 0, 0, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-
-    // left face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ -halfA, +halfA, -halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        Point3{ -halfA, -halfA, +halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 0, 0, 0 },
-            Point3{ 1, 0, 0 }
-        },
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-    
-    // right face
-    faces.emplace_back(
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 },
-            Point3{ 0, 0, 0 }
-        },
-        TriangleMapping{
-            Point3{ 1, 1, 0 },
-            Point3{ 0, 1, 0 },
-            Point3{ 0, 0, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-    
-    // bottom face
-    faces.emplace_back(
-        Point3{ -halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, -halfA },
-        Point3{ +halfA, -halfA, +halfA },
-        Point3{ -halfA, -halfA, +halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 1, 1, 0 },
-            Point3{ 1, 0, 0 }
-        },
-        TriangleMapping{
-            Point3{ 0, 1, 0 },
-            Point3{ 0, 0, 0 },
-            Point3{ 1, 0, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-
-    // top face
-    faces.emplace_back(
-        Point3{ -halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, -halfA },
-        Point3{ +halfA, +halfA, +halfA },
-        Point3{ -halfA, +halfA, +halfA },
-        origin,
-        TriangleMapping{
-            Point3{ 0, 0, 0 },
-            Point3{ 1, 0, 0 },
-            Point3{ 1, 1, 0 }
-        },
-        TriangleMapping{
-            Point3{ 0, 0, 0 },
-            Point3{ 0, 1, 0 },
-            Point3{ 1, 1, 0 }
-        }
-    );
-    facesMaterialIds.push_back(0);
-}
 } // namespace RayTracing

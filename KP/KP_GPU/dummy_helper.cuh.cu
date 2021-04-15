@@ -192,6 +192,8 @@ public:
         checkCudaErrors(
             cudaFree(ptr)
         );
+
+        ptr = nullptr;
     }
 };
 

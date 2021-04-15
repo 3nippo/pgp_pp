@@ -10,10 +10,13 @@ namespace RayTracing
 class Texture
 {
 public:
-    __device__
-    virtual Color GetColor(const float u, const float v) const = 0;
+    __host__ __device__
+    virtual Color GetColor(const float u, const float v) const
+    {
+        return Color();
+    }
 
-    __device__
+    __host__ __device__
     virtual ~Texture() {}
 };
 
@@ -22,16 +25,16 @@ class SolidTexture : public Texture
 private:
     Color m_color;
 public:
-    __device__
+   __host__  __device__
     SolidTexture(const Color &color)
         : m_color(color)
     {}
 
-    __device__
+   __host__  __device__
     virtual ~SolidTexture() {}
 
 private:
-    __device__
+   __host__ __device__
     virtual Color GetColor(const float u, const float v) const override
     {
         return m_color;
@@ -44,6 +47,11 @@ public:
     Vector3 m_A;
     Vector3 m_B;
     Vector3 m_C;
+
+public:
+    TriangleMapping(const Vector3& A, const Vector3 &B, const Vector3 &C)
+        : m_A(A), m_B(B), m_C(C)
+    {}
 };
 
 class SquareMapping

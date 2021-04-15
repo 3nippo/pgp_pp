@@ -23,7 +23,7 @@ public:
           reflectance(reflectance)
     {}
     
-    __device__
+    __host__ __device__
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
@@ -31,7 +31,7 @@ public:
         Ray &scattered
     ) const = 0;
 
-    __device__
+   __host__  __device__
     virtual Color Emitted(
         const HitRecord &hitRecord
     ) const
@@ -39,7 +39,7 @@ public:
         return Color(0, 0, 0);
     }
 
-    __device__
+   __host__  __device__
     virtual bool Emits() const
     {
         return false;

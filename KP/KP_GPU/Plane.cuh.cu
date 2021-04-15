@@ -27,15 +27,10 @@ public:
         m_D = m_A.Dot(m_normal);
     }
     
-    __device__
+    __host__ __device__
     float PlanePoint(const Ray &ray) const
     {
         return (m_D - m_normal.Dot(ray.origin)) / m_normal.Dot(ray.direction);
-    }
-
-    const Vector3& GetNormal() const
-    {
-        return m_normal;
     }
 };
 

@@ -2,19 +2,24 @@
 
 #include <vector>
 #include <string>
+#include <cassert>
+#include <algorithm>
+#include <iostream>
 
-#include "Camera.cuh.cu"
+#include "Config.cuh.cu"
 #include "Vector3.cuh.cu"
-#include "Scene.cuh.cu"
 #include "Ray.cuh.cu"
-#include "./dummy_helper.cuh.cu"
+#include "PolygonsManager.cuh.cu"
+#include "dummy_helper.cuh.cu"
+#include "Camera.cuh.cu"
 
 namespace RayTracing
 {
+
 constexpr int CAP = 1000000;
 constexpr int GRID_SIZE = 128;
 constexpr int BLOCK_SIZE = 512; 
-
+constexpr int FRAME_NAME_BUFFER_COUNT = 1024;
 
 struct Normalizer
 {
@@ -22,8 +27,7 @@ struct Normalizer
 
     Normalizer(const int samplesPerPixel) : samplesPerPixel(samplesPerPixel) {}
     
-    __device__
-    float4 operator()(const float4 &v)
+    float4 operator()(const float4 &v) const
     {
         return (Vector3(v) / samplesPerPixel).Clamp(0, 1).d; 
     }
@@ -39,38 +43,87 @@ struct RayTraceData
 class RayTracer
 {
 private:
-    const int m_width;
-    const int m_height;
-    const int m_samplesPerPixel;
-    const int m_depth;
+    const Config &m_config;
+    Camera m_camera;
+    const float m_start, m_end;
 
-    const Camera &m_camera;
-    const Scene &m_scene;
-    std::vector<float4> m_pictureBuffer;
-    std::vector<RayTraceData> m_raysData;
-    std::vector<int> m_raysDataKeys;
-
-
-    CudaMemory<float4> m_pictureBuffer_d;
+    const Normalizer m_normalizer;
 
 public:
     RayTracer(
-        const Camera &camera,
-        const Scene &scene,
-        const int width,
-        const int height,
-        const int samplesPerPixel,
-        const int depth
+        const Config &config,
+        const float start,
+        const float end
     );
+    
+    template<bool isGPU>
+    void RenderFrames(const PolygonsManager<isGPU> &polygonsManager)
+    {
+        std::vector<float4> picture;
+        
+        float step = 2 * M_PI / m_config.framesNum;
 
-    void Render();
+        for (int i = m_start; i < m_end; ++i)
+        {
+            picture.assign(m_config.width * m_config.height, { 0, 0, 0, 0 });
 
-    void WriteToFile(const std::string &name);
-    void WriteToFilePPM(const std::string &name);
+            const float t = i * step;
+
+            SetupCamera(t);
+
+            std::vector<RayTraceData> raysData;
+            std::vector<int> raysDataKeys;
+
+            FillRaysData(raysData, raysDataKeys);
+
+            CudaTimer cudaTimer;
+            cudaTimer.start();
+
+            size_t numberOfRays = Render<isGPU>(
+                polygonsManager, 
+                raysData, 
+                raysDataKeys, 
+                picture
+            );
+
+            cudaTimer.stop();
+
+            float frameRenderTime = cudaTimer.get_time();
+            
+            printf("**********************************************\n");
+            printf("\n\nFrame %d\tTime: %fms\tNumber of rays: %zu\n\n", i+1, frameRenderTime, numberOfRays);
+            printf("**********************************************\n");
+
+            std::for_each(
+                picture.begin(),
+                picture.end(),
+                [this] (float4 &v)
+                {
+                    v = (Vector3(v) / m_config.samplesPerPixel).Clamp(0, 1).d; 
+                }
+            );
+
+            WriteToFilePPM(GetFrameName(i), picture);
+        }
+    }
 
 private:
-    Color RayColor(const Ray &ray, const int depth);
-    void CopyPictureToHost();
+    void SetupCamera(const float t);
+    void FillRaysData(std::vector<RayTraceData> &raysData, std::vector<int> &raysDataKeys);
+    void WriteToFile(const std::string &frameName, const std::vector<float4> &picture);
+    void WriteToFilePPM(const std::string &frameName, const std::vector<float4> &picture);
+    std::string GetFrameName(const int index);
+    
+    template<bool isGPU>
+    size_t Render(
+        const PolygonsManager<isGPU> &polygonsManager,
+        std::vector<RayTraceData> &raysData,
+        std::vector<int> &raysDataKeys,
+        std::vector<float4> &picture
+    )
+    {
+        assert(("Not implemented", false));
+    }
 };
 
 } // namespace RayTracing

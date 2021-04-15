@@ -11,44 +11,11 @@
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
 #include <thrust/functional.h>
-#include <thrust/transform.h>
 #include <thrust/random/linear_congruential_engine.h>
 #include <thrust/random/uniform_int_distribution.h>
 
 namespace RayTracing
 {
-
-__global__
-void RandomShuffle(
-    RayTraceData *raysData,
-    int *raysDataKeys,
-    const int raysCount
-)
-{
-    if (threadIdx.x != 0 || blockDim.x != 0)
-        return;
-
-    thrust::minstd_rand rng;
-    
-    thrust::uniform_int_distribution<int> dist(0, raysCount-1);
-    
-    for (int i = 0; i < raysCount; ++i)
-    {
-        int generated = dist(rng);
-
-        {
-            RayTraceData tmp = raysData[i];
-            raysData[i] = raysData[generated];
-            raysData[generated] = tmp;
-        }
-
-        {
-            int tmp = raysDataKeys[i];
-            raysDataKeys[i] = raysDataKeys[generated];
-            raysDataKeys[generated] = tmp;
-        }
-    }
-}
 
 template<typename T>
 __global__
@@ -66,7 +33,7 @@ void SetValues(
 
 __global__
 void ComputeNextRays(
-    Scene scene,
+    const PolygonsManager<true> polygonsManager,
     const RayTraceData* const raysData,
     const int* const raysDataKeys,
     const int raysCount,
@@ -86,7 +53,7 @@ void ComputeNextRays(
         
         const Ray &ray = raysData[id].scattered;
 
-        if (!scene.Hit(ray, 0.001, hitRecord))
+        if (!polygonsManager.Hit(ray, 0.001, hitRecord))
         {
             /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
 
@@ -144,33 +111,42 @@ void ComputeNextRays(
 }
 
 RayTracer::RayTracer(
-    const Camera &camera,
-    const Scene &scene,
-    const int width,
-    const int height,
-    const int samplesPerPixel,
-    const int depth
+    const Config &config,
+    const float start, 
+    const float end 
 )
-    : m_camera(camera), 
-      m_scene(scene),
-      m_width(width), 
-      m_height(height), 
-      m_samplesPerPixel(samplesPerPixel),
-      m_depth(depth)
+    : m_config(config),
+      m_camera(
+          m_config.width,
+          m_config.height,
+          m_config.horizontalViewDegrees
+      ),
+      m_normalizer(config.samplesPerPixel),
+      m_start(start),
+      m_end(end)
+{}
+
+void RayTracer::FillRaysData(
+    std::vector<RayTraceData> &raysData, 
+    std::vector<int> &raysDataKeys
+)
 {
-    for (int h = 0; h < m_height; ++h)
+    int height = m_config.height;
+    int width = m_config.width;
+
+    for (int h = 0; h < height; ++h)
     {
-        for (int w = 0; w < m_width; ++w)
+        for (int w = 0; w < width; ++w)
         {
-            for (int s = 0; s < m_samplesPerPixel; ++s)
+            for (int s = 0; s < m_config.samplesPerPixel; ++s)
             {
-                float y = (m_height - 1 - h + GenRandom()) / (m_height - 1),
-                      x = (w + GenRandom()) / (m_width - 1);
+                float y = (height - 1 - h + GenRandom()) / (height - 1),
+                      x = (w + GenRandom()) / (width - 1);
 
                 Ray ray = m_camera.GetRay(x, y);
                 
-                m_raysDataKeys.push_back(w);
-                m_raysData.push_back(RayTraceData{
+                raysDataKeys.push_back(w);
+                raysData.push_back(RayTraceData{
                     h,
                     {1, 1, 1},
                     ray
@@ -178,34 +154,38 @@ RayTracer::RayTracer(
             }
         }
     }
-    
-    m_pictureBuffer.resize(m_height * m_width);
-    m_pictureBuffer_d.alloc(m_height * m_width);
-    SetValues<<<GRID_SIZE, BLOCK_SIZE>>>(
-        m_pictureBuffer_d.get(), 
-        { 0, 0, 0, 0}, 
-        m_pictureBuffer_d.count
-    );
 }
 
 
-void RayTracer::Render()
+template<>
+size_t RayTracer::Render<true>(
+    const PolygonsManager<true> &polygonsManager,
+    std::vector<RayTraceData> &raysData,
+    std::vector<int> &raysDataKeys,
+    std::vector<float4> &picture
+)
 {
-    const int lastSize = m_raysData.size() % CAP,
-              blocksNum = m_raysData.size() / CAP + (lastSize != 0);
+    const int lastSize = raysData.size() % CAP,
+              blocksNum = raysData.size() / CAP + (lastSize != 0);
+        
+    CudaMemory<float4> picture_d(picture.size());
+
+    picture_d.memcpy(picture.data(), cudaMemcpyHostToDevice);
+
+    size_t frameRaysNum = 0;
 
     for (int i = 0; i < blocksNum; ++i)
     {
         std::cerr << ">>> block " << i+1 << "/" << blocksNum << std::endl << std::endl;  
 
-        int depth = m_depth;
+        int depth = m_config.recursionDepth;
         int count = (i == blocksNum - 1 && lastSize != 0 ? lastSize : CAP);
         
         CudaMemory<RayTraceData> currentRaysData_d(count);
         CudaMemory<int> currentRaysDataKeys_d(count);
 
-        currentRaysData_d.memcpy(m_raysData.data() + i * CAP, cudaMemcpyHostToDevice);
-        currentRaysDataKeys_d.memcpy(m_raysDataKeys.data() + i * CAP, cudaMemcpyHostToDevice);
+        currentRaysData_d.memcpy(raysData.data() + i * CAP, cudaMemcpyHostToDevice);
+        currentRaysDataKeys_d.memcpy(raysDataKeys.data() + i * CAP, cudaMemcpyHostToDevice);
 
         CudaKernelChecker checker;
         std::string kernelName = "ComputeNextRays, depth: ";
@@ -215,7 +195,7 @@ void RayTracer::Render()
 
         while (depth--)
         {
-            std::cerr << "> depth " << m_depth - depth << "/" << m_depth << std::endl;
+            std::cerr << "> depth " << m_config.recursionDepth - depth << "/" << m_config.recursionDepth << std::endl;
             std::cerr << "> rays count " << count << std::endl;
 
             if (count == 0)
@@ -235,17 +215,6 @@ void RayTracer::Render()
 
             if (count > newRaysData_d.count / 2)
             {
-                /* if (count > CAP) */
-                /* { */
-                /*     RandomShuffle<<<GRID_SIZE, BLOCK_SIZE>>>( */
-                /*         currentRaysData_d.get(), */
-                /*         currentRaysDataKeys_d.get(), */
-                /*         count */
-                /*     ); */
-
-                /*     count = CAP; */
-                /* } */
-
                 newRaysData_d.dealloc();
                 newRaysData_d.alloc(count * 2);
 
@@ -261,15 +230,17 @@ void RayTracer::Render()
 
             // render step
             ComputeNextRays<<<GRID_SIZE, BLOCK_SIZE>>>(
-                m_scene,
+                polygonsManager,
                 currentRaysData_d.get(),
                 currentRaysDataKeys_d.get(),
                 count,
                 newRaysData_d.get(),
                 newRaysDataKeys_d.get(),
-                m_pictureBuffer_d.get(),
-                m_width
+                picture_d.get(),
+                m_config.width
             );
+
+            frameRaysNum += count;
 
             std::string fullKernelName = kernelName + std::to_string(depth + 1);
         
@@ -291,66 +262,190 @@ void RayTracer::Render()
             
             // update count
             count = infStart - newRaysDataKeys;
-
+            
             CudaMemory<RayTraceData>::Swap(currentRaysData_d, newRaysData_d);
             CudaMemory<int>::Swap(currentRaysDataKeys_d, newRaysDataKeys_d);
         }
     }
+
+    picture_d.memcpy(picture.data(), cudaMemcpyDeviceToHost);
+
+    return frameRaysNum;
 }
 
-void RayTracer::CopyPictureToHost()
+template<>
+size_t RayTracer::Render<false>(
+    const PolygonsManager<false> &polygonsManager,
+    std::vector<RayTraceData> &raysData,
+    std::vector<int> &raysDataKeys,
+    std::vector<float4> &picture
+)
 {
-    thrust::device_ptr<float4> picture_d = thrust::device_pointer_cast(m_pictureBuffer_d.get());
+    std::vector<RayTraceData> newRaysData;
+    std::vector<int> newRaysDataKeys;
     
-    Normalizer normalizer(m_samplesPerPixel);
+    size_t frameRaysNum = 0;
 
-    thrust::transform(
-        picture_d,
-        picture_d + m_pictureBuffer_d.count,
-        picture_d,
-        normalizer
-    );
+    for (int depth = 0; depth < m_config.recursionDepth; ++depth)
+    {
+        std::cerr << "> depth " << depth + 1 << "/" << m_config.recursionDepth << std::endl << std::endl;
 
-    m_pictureBuffer_d.memcpy(m_pictureBuffer.data(), cudaMemcpyDeviceToHost);
+        for (int i = 0; i < raysData.size(); ++i)
+        {
+            HitRecord hitRecord;
+
+            hitRecord.t = INF;
+            
+            const Ray &ray = raysData[i].scattered;
+
+            if (!polygonsManager.Hit(ray, 0.001, hitRecord))
+            {
+                /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
+
+                /* Color emittedColor = Vector3(1, 1, 1) * raysData[id].attenuation; */
+
+                /* atomicAdd(&pixel->x, emittedColor.d.x); */
+                /* atomicAdd(&pixel->y, emittedColor.d.y); */
+                /* atomicAdd(&pixel->z, emittedColor.d.z); */
+
+                continue;
+            }
+            
+            if (hitRecord.material->Emits())
+            {
+                float4 &pixel = picture[raysDataKeys[i] + raysData[i].h * m_config.width];
+                
+                Color emittedColor = hitRecord.material->Emitted(hitRecord) * raysData[i].attenuation;
+                
+                pixel.x += emittedColor.d.x;
+                pixel.y += emittedColor.d.y;
+                pixel.z += emittedColor.d.z;
+            }
+
+            newRaysData.emplace_back();
+
+            if (
+                hitRecord.material->reflectance != 0
+                && hitRecord.material->Scatter(
+                    ray,
+                    hitRecord,
+                    newRaysData.back().attenuation,
+                    newRaysData.back().scattered
+                )
+            )
+            {
+                newRaysData.back().attenuation *= raysData[i].attenuation * hitRecord.material->reflectance;
+                
+                if (!newRaysData.back().attenuation.NearZero())
+                {
+                    newRaysDataKeys.push_back(raysDataKeys[i]);
+                    newRaysData.back().h = raysData[i].h;
+                }
+            }
+            else
+                newRaysData.pop_back();
+            
+            newRaysData.emplace_back();
+            newRaysData.back().attenuation = raysData[i].attenuation * hitRecord.material->transparency;
+
+            if (
+                hitRecord.material->transparency != 0
+                && !newRaysData.back().attenuation.NearZero()
+            )
+            {
+                newRaysDataKeys.push_back(raysDataKeys[i]);
+                newRaysData.back().h = raysData[i].h;
+                newRaysData.back().scattered = Ray(hitRecord.point, ray.direction);
+            }
+            else
+                newRaysData.pop_back();
+        }
+
+        frameRaysNum += raysData.size();
+
+        std::swap(newRaysData, raysData);
+        std::swap(newRaysDataKeys, raysDataKeys);
+
+        newRaysData.clear();
+        newRaysDataKeys.clear();
+    }
+
+    return frameRaysNum;
 }
 
-void RayTracer::WriteToFile(const std::string &name)
+void RayTracer::SetupCamera(const float t)
 {
-    CopyPictureToHost();
+    auto TrajectoryToPoint = [] (const float t, const Trajectory &trajectory) -> Point3
+    {
+        return Point3{
+            trajectory.r + trajectory.rA * sinf(trajectory.rOm * t + trajectory.rP),
+            trajectory.z + trajectory.zA * sinf(trajectory.zOm * t + trajectory.zP),
+            trajectory.phi + trajectory.phiOm * t
+        };
+    };
 
-    std::ofstream outputFile(name);
+    auto ToCartesian = [] (const Point3 &point) -> Point3
+    {
+        return Point3{
+            point.d.x * cosf(point.d.z),
+            point.d.x * sinf(point.d.z),
+            point.d.y
+        };
+    };
 
-    outputFile.write(
-        reinterpret_cast<const char*>(&m_width), 
-        sizeof(m_width)
+    m_camera.LookAt(
+        ToCartesian(TrajectoryToPoint(t, m_config.lookAt)),
+        ToCartesian(TrajectoryToPoint(t, m_config.lookFrom))
     );
-
-    outputFile.write(
-        reinterpret_cast<const char*>(&m_height),
-        sizeof(m_height)
-    );
-
-    for (size_t i = 0; i < m_pictureBuffer.size(); ++i)
-        outputFile << m_pictureBuffer[i];
 }
 
-void RayTracer::WriteToFilePPM(const std::string &name)
+std::string RayTracer::GetFrameName(const int index)
 {
-    CopyPictureToHost();
+    char nameBuffer[FRAME_NAME_BUFFER_COUNT];
 
-    std::ofstream outputFile(name);
+    sprintf(nameBuffer, m_config.outputTemplate.c_str(), index);
+
+    return nameBuffer;
+}
+
+void RayTracer::WriteToFile(const std::string &frameName, const std::vector<float4> &picture)
+{
+    std::ofstream outputFile(frameName);
+    
+    int height = m_config.height;
+    int width = m_config.width;
+
+    outputFile.write(
+        reinterpret_cast<const char*>(&width), 
+        sizeof(width)
+    );
+
+    outputFile.write(
+        reinterpret_cast<const char*>(&height),
+        sizeof(height)
+    );
+
+    for (size_t i = 0; i < picture.size(); ++i)
+        outputFile << picture[i];
+}
+
+void RayTracer::WriteToFilePPM(const std::string &frameName, const std::vector<float4> &picture)
+{
+    std::ofstream outputFile(frameName);
 
     outputFile << "P3" << std::endl;
 
-    outputFile << m_width << ' ' << m_height << std::endl;
+    outputFile << m_config.width << ' ' << m_config.height << std::endl;
+    
+    const int maxChannelValue = 255;
 
-    outputFile << 255 << std::endl;
+    outputFile << maxChannelValue << std::endl;
 
-    for (size_t i = 0; i < m_pictureBuffer.size(); ++i)
+    for (size_t i = 0; i < picture.size(); ++i)
     {
         unsigned char r, g, b, a;
 
-        ColorToRGBA(m_pictureBuffer[i], r, g, b, a);
+        ColorToRGBA(picture[i], r, g, b, a);
 
         outputFile << (int)r << ' ' << (int)g << ' ' << (int)b << std::endl;
     }

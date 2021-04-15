@@ -204,7 +204,7 @@ std::ostream& operator<<(std::ostream &stream, const Color &v)
     return stream;
 }
 
-__device__
+__host__ __device__
 Vector3& Vector3::Clamp(const float tMin, const float tMax)
 {
     d.x = RayTracing::Clamp(d.x, tMin, tMax);
@@ -218,6 +218,14 @@ __host__ __device__
 Vector3 Vector3::Reflect(const Vector3 &v, const Vector3 &normal)
 {
     return v - 2 * v.Dot(normal) * normal;
+}
+
+__host__ 
+std::istream& operator>>(std::istream &istream, Vector3 &v)
+{
+    istream >> v.d.x >> v.d.y >> v.d.z;
+
+    return istream;
 }
 
 } // namespace RayTracing

@@ -1,4 +1,7 @@
-#include "Config.hpp"
+#include "Config.cuh.cu"
+
+namespace RayTracing
+{
 
 std::istream& operator>>(std::istream &istream, Config& config)
 {
@@ -23,7 +26,9 @@ std::istream& operator>>(std::istream &istream, Config& config)
 
     istream >> config.recursionDepth;
 
-    istream >> config.sqrtSamplesPerPixel;
+    istream >> config.samplesPerPixel;
+
+    config.samplesPerPixel *= config.samplesPerPixel;
 
     return istream;
 }
@@ -69,9 +74,11 @@ std::istream& operator>>(std::istream &istream, FloorData& floorData)
     return istream;
 }
 
-std::istream& operator>>(std::istream &istream, LightSource& lightSource)
+std::istream& operator>>(std::istream &istream, LightSourceData& lightSourceData)
 {
-    istream >> lightSource.origin >> lightSource.radius >> lightSource.color;
+    istream >> lightSourceData.origin >> lightSourceData.radius >> lightSourceData.color;
 
     return istream;
 }
+
+} // namespace RayTracing

@@ -17,9 +17,9 @@ struct HitRecord
     float v;
     Vector3 normal;
     Point3 point;
-    const Material *material;
+    const Material *material = nullptr;
     
-    __device__
+    __host__ __device__
     void SetNormal(const Ray &ray, const Vector3 &pointNormal)
     {
         normal = pointNormal.Dot(ray.direction) < 0 ? pointNormal : -pointNormal;

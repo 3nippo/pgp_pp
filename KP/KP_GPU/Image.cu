@@ -33,7 +33,11 @@ Image::Image(const std::string &fileName)
             b / 255.0f
         });
     }
+}
 
+template<>
+void Image::Init<true>()
+{
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
     checkCudaErrors(cudaMallocArray(
         &m_buffer_d, 
@@ -72,9 +76,36 @@ Image::Image(const std::string &fileName)
     ));
 }
 
-Image::~Image()
+template<>
+cudaTextureObject_t Image::GetResource<true>()
 {
-    checkCudaErrors(cudaFreeArray(m_buffer_d));
+    return cudaTexture;
+}
+
+template<>
+Image Image::GetResource<false>()
+{
+    return *this;
+}
+
+template<>
+void Image::Init<false>() {}
+
+Color Image::GetColor(const float u, const float v) const
+{
+    int w = Clamp(u * (m_width - 1), 0, (m_width - 1)),
+        h = Clamp(v * (m_height - 1), 0, (m_height - 1));
+
+    return buffer[w + m_width * h];
+}
+
+void Image::Deinit()
+{
+    if (m_buffer_d != nullptr)
+    {
+        checkCudaErrors(cudaFreeArray(m_buffer_d));
+        checkCudaErrors(cudaDestroyTextureObject(cudaTexture));
+    }
 }
 
 

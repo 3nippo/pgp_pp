@@ -51,7 +51,7 @@ template<typename Derived, typename Base, typename ... Args>
 class CudaHeapObject
 {
 public:
-    Base **ptr = nullptr;
+    mutable Base **ptr = nullptr;
 public:
     CudaHeapObject(Args ... args)
     {
@@ -59,12 +59,39 @@ public:
 
         AllocInstance<Derived>(ptr, args...);
     }
-    
+
     ~CudaHeapObject()
     {
+        if (ptr == nullptr)
+            return;
+
         DeallocInstance(ptr);
 
         checkCudaErrors(cudaFree(ptr));
+    }
+};
+
+template<typename Derived, typename Base, typename ... Args>
+class HeapObject
+{
+public:
+    mutable Base **ptr = nullptr;
+public:
+    HeapObject(Args ... args)
+    {
+        ptr = new Base*;
+
+        *ptr = new Derived(args...);
+    }
+
+    ~HeapObject()
+    {
+        if (ptr == nullptr)
+            return;
+
+        delete *ptr;
+
+        delete ptr;
     }
 };
 } // namespace RayTracing

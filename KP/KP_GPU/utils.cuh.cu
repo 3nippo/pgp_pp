@@ -13,7 +13,7 @@ namespace RayTracing
 
 float DegreesToRadians(const float degrees);
 
-__device__
+__host__ __device__
 float Clamp(
     const float x, 
     const float xMin, 

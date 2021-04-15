@@ -9,7 +9,7 @@ float DegreesToRadians(const float degrees)
     return degrees * M_PI / 180;
 }
 
-__device__
+__host__ __device__
 float Clamp(
     const float x, 
     const float xMin, 

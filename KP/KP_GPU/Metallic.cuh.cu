@@ -23,7 +23,7 @@ public:
           m_albedo(albedo)
     {}
 private:
-    __device__
+    __host__ __device__
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,

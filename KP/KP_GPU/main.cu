@@ -1,11 +1,12 @@
 #include <string>
 #include <cmath>
 #include <iostream>
+#include <cstdlib>
 
 #include "RayTracer.cuh.cu"
-#include "Scene.cuh.cu"
+#include "PolygonsManager.cuh.cu"
+#include "FigureConstructor.cuh.cu"
 #include "Camera.cuh.cu"
-#include "Figure.cuh.cu"
 #include "Vector3.cuh.cu"
 #include "Lambertian.cuh.cu"
 #include "Metallic.cuh.cu"
@@ -13,10 +14,14 @@
 #include "ImageTexture.cuh.cu"
 #include "Texture.cuh.cu"
 #include "DiffuseLight.cuh.cu"
-#include "./DummyAllocs.cuh.cu"
+#include "DummyAllocs.cuh.cu"
+#include "Config.cuh.cu"
 
 #include <curand.h>
 #include <curand_kernel.h>
+
+namespace
+{
 
 __global__ 
 void InitStates(curandState *state)
@@ -25,125 +30,178 @@ void InitStates(curandState *state)
     curand_init(42, id, 0, state + id);
 }
 
-int main()
+int PrintDefaultConfig()
 {
-try
+    int err = system("cat ./default_config");
+    
+    if (err)
+    {
+        std::cout << "You probably lost config >:(" << std::endl;
+    }
+
+    return err;
+}
+
+CudaMemoryLogic<curandState> states;
+
+template<
+    template<typename...> class ObjectAllocator,
+    bool isGPU,
+    typename TextureResource
+>
+void Logic(
+    const RayTracing::Config &config
+)
 {
     using namespace RayTracing;
 
-    CudaMemory<curandState> states(GRID_SIZE * BLOCK_SIZE);
-
-    InitStates<<<GRID_SIZE, BLOCK_SIZE>>>(states.get());
-
-    const float radius = 6;
-       
-    CudaHeapMemory<SolidTexture, Texture, Color> mirrorTexture(Color(0, 0.749, 1)); 
+    PolygonsManager<isGPU> polygonsManager;
     
-    CudaHeapMemory<Metallic, Material, float, float, Texture**> mirrorMaterial(
-        0.5,
-        1,
-        mirrorTexture.ptr
-    );
-    
-    CudaHeapMemory<SolidTexture, Texture, Color> pinkTexture(Color(1, 0.07, 0.57));
+    if (isGPU)
+    {
+        states.alloc(GRID_SIZE * BLOCK_SIZE);
 
-    CudaHeapMemory<Lambertian, Material, float, float, Texture**, curandState*> pinkMaterial(
+        InitStates<<<GRID_SIZE, BLOCK_SIZE>>>(states.get());
+    }
+
+    // Figure A
+
+    ObjectAllocator<SolidTexture, Texture, Color> pinkTexture(Color(1, 0.07, 0.57));
+
+    ObjectAllocator<Lambertian, Material, float, float, Texture**, curandState*> pinkMaterial(
         0,
         1,
         pinkTexture.ptr,
         states.get()
     );
+
+    ObjectAllocator<SolidTexture, Texture, Color> mirrorTexture(config.A.color); 
     
-    CudaHeapMemory<SolidTexture, Texture, Color> edgeLightTexture(Color(2, 2, 2));
+    ObjectAllocator<Metallic, Material, float, float, Texture**> mirrorMaterial(
+        config.A.transparency,
+        config.A.reflectance,
+        mirrorTexture.ptr
+    );
+    
+    ObjectAllocator<SolidTexture, Texture, Color> edgeLightTexture(Color(2, 2, 2));
 
-    CudaHeapMemory<DiffuseLight, Material, Texture**> edgeLightMaterial(edgeLightTexture.ptr);
-
-    FancyCube cube1(
-        Vector3{ 0, 0, 0 },
-        radius,
+    ObjectAllocator<DiffuseLight, Material, Texture**> edgeLightMaterial(edgeLightTexture.ptr);
+    
+    FigureConstructor<FigureId::FancyCube, isGPU>::ConstructFigure(
+        polygonsManager,
         {
             mirrorMaterial.ptr,
             pinkMaterial.ptr,
             edgeLightMaterial.ptr
-        }
+        },
+        config.A.origin,
+        config.A.radius,
+        config.A.edgeLightsNum
     );
+
+    // LightSources
+
+    std::vector<ObjectAllocator<
+        RayTracing::SolidTexture, 
+        RayTracing::Texture, 
+        RayTracing::Color
+    >> lightSourcesTextures;
+
+    lightSourcesTextures.reserve(config.lightSourcesNum * 10);
+
+    std::vector<ObjectAllocator<
+        RayTracing::DiffuseLight, 
+        RayTracing::Material, 
+        RayTracing::Texture**
+    >> lightSourcesMaterials;
+
+    lightSourcesMaterials.reserve(config.lightSourcesNum * 10);
+
+    for (int i = 0; i < config.lightSourcesNum; ++i)
+    {
+        lightSourcesTextures.emplace_back(
+            config.lightSources[i].color
+        );
+
+        lightSourcesMaterials.emplace_back(
+            lightSourcesTextures.back().ptr
+        );
+
+        FigureConstructor<FigureId::LightSource, isGPU>::ConstructFigure(
+            polygonsManager,
+            { lightSourcesMaterials[i].ptr },
+            config.lightSources[i].origin,
+            config.lightSources[i].radius,
+            0
+        );
+    }
+
+    // Floor
+
+    Image floorImage(config.floorData.texturePath);
     
-    std::string floorFileName = "floor.data";
+    floorImage.Init<isGPU>();
 
-    Image floorImage(floorFileName);
-
-    CudaHeapMemory<ImageTexture, Texture, cudaTextureObject_t, Color> floorTexture(
-        floorImage.cudaTexture,
-        Color(2, 2, 2)
+    ObjectAllocator<ImageTexture<isGPU>, Texture, TextureResource, Color> floorTexture(
+        floorImage.GetResource<isGPU, TextureResource>(),
+        config.floorData.color
     );
 
-    CudaHeapMemory<Lambertian, Material, float, float, Texture**, curandState*> floorMaterial(
+    ObjectAllocator<Lambertian, Material, float, float, Texture**, curandState*> floorMaterial(
         0, 
-        1, 
+        config.floorData.reflectance,
         floorTexture.ptr,
         states.get()
     );
-    /* CudaHeapMemory<Metallic, Material, float, float, Texture**> floorMaterial( */
-    /*     0, */ 
-    /*     1, */ 
-    /*     floorTexture.ptr */
-    /* ); */
 
-    float floorRadius = 10 * radius;
-
-    Floor floor(
-        Vector3{ 7.5f, -radius / sqrtf(3) - 0.001f, 0 },
-        floorRadius,
-        { floorMaterial.ptr }
+    FigureConstructor<FigureId::Floor, isGPU>::ConstructFigureByPoints(
+        polygonsManager,
+        { floorMaterial.ptr },
+        config.floorData.A,
+        config.floorData.B,
+        config.floorData.C,
+        config.floorData.D
     );
 
-    CudaHeapMemory<SolidTexture, Texture, Color> lightTexture(Color(8, 8, 8));
-
-    CudaHeapMemory<DiffuseLight, Material, Texture**> lightMaterial(lightTexture.ptr);
-
-    float lightRadius = 10;
-    LightSource lightSource(
-        { 2 * radius / sqrtf(3), 4 * radius / sqrtf(3), 0 },
-        lightRadius,
-        { lightMaterial.ptr }
-    );
-
-    RayTracing::Scene scene(cube1, floor, lightSource);
+    polygonsManager.CompleteAdding();
     
-    int width = 1024,
-        height = 768;
-
-    float horizontalViewDegrees = 60;
-
-    RayTracing::Camera camera(
-        width, 
-        height, 
-        horizontalViewDegrees,
-        RayTracing::Vector3(),
-        RayTracing::Vector3{ 15, 0, 0 }
-    );
-
-    int sqrtSamplesPerPixel = 13;
-    int depth = 10;
-
-    RayTracing::RayTracer rayTracer(
-        camera,
-        scene,
-        width,
-        height,
-        sqrtSamplesPerPixel * sqrtSamplesPerPixel,
-        depth
-    );
-
-    rayTracer.Render();
+    RayTracer rayTracer(config, 0, config.framesNum);
     
-    std::string fileName = "pic.ppm";
+    rayTracer.RenderFrames(polygonsManager);
+    
+    floorImage.Deinit();
+    polygonsManager.Deinit();
 
-    cube1.Deinit();
-    floor.Deinit();
-    lightSource.Deinit();
+    if (isGPU)
+    {
+        states.dealloc();
+    }
+}
 
-    rayTracer.WriteToFilePPM(fileName);
+} // namespace
+
+int main(int argc, char **argv)
+{
+try
+{
+    if (argc == 2 && std::string(argv[1]) == "--default")
+    {
+        return PrintDefaultConfig();
+    }
+
+    bool useGPU = true;
+
+    if (argc == 2 && std::string(argv[1]) == "--cpu")
+        useGPU = false;
+    
+    RayTracing::Config config;
+
+    std::cin >> config;
+
+    if (useGPU)
+        Logic<RayTracing::CudaHeapObject, true, cudaTextureObject_t>(config);
+    else
+        Logic<RayTracing::HeapObject, false, RayTracing::Image>(config);
 }
 catch (std::runtime_error &err)
 {

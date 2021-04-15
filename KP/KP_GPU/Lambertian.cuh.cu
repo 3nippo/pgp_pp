@@ -31,9 +31,11 @@ public:
     {}
 
 private:
-    __device__
+    __host__ __device__
     Vector3 RandomUnitSphereSurfaceVector() const
     {
+        #ifdef __CUDA_ARCH__
+        
         int id = threadIdx.x + blockDim.x * blockIdx.x;
 
         while (true)
@@ -50,20 +52,26 @@ private:
             return v.UnitVector();
         }
 
-        /* const int id = threadIdx.x + blockIdx.x * blockDim.x; */
+        #else
 
-        /* float r1 = curand_uniform(m_states + id); */
-        /* float r2 = curand_uniform(m_states + id); */
-        /* float m = sqrtf(r2); */
+        while (true)
+        {
+            Vector3 v{
+                GenRandom(-1, 1),
+                GenRandom(-1, 1),
+                GenRandom(-1, 1),
+            };
 
-        /* return Vector3{ */
-        /*     cosf(2 * M_PI * r1) * m, */
-        /*     sinf(2 * M_PI * r1) * m, */
-        /*     sqrt(1 - r2) */
-        /* }; */
+            if (v.LengthSquared() > 1)
+                continue;
+
+            return v.UnitVector();
+        }
+
+        #endif
     }
     
-    __device__
+    __host__ __device__
     virtual bool Scatter(
         const Ray &ray,
         const HitRecord &hitRecord,
