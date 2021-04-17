@@ -163,8 +163,8 @@ Vector3 Vector3::UnitVector() const
 __host__ __device__
 bool Vector3::NearZero() const
 {
-    /* return fabs(d.x) < EPS && fabs(d.y) < EPS && fabs(d.z) < EPS; */ 
-    return fabs(d.x) == 0 && fabs(d.y) == 0 && fabs(d.z) == 0; 
+    return fabs(d.x) < EPS && fabs(d.y) < EPS && fabs(d.z) < EPS; 
+    /* return fabs(d.x) == 0 && fabs(d.y) == 0 && fabs(d.z) == 0; */ 
 }
 
 __device__
