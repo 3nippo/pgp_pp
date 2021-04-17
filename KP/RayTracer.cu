@@ -388,14 +388,19 @@ void RayTracer::SetupCamera(const float t)
     {
         return Point3{
             point.d.x * cosf(point.d.z),
-            point.d.x * sinf(point.d.z),
-            point.d.y
+            point.d.y,
+            point.d.x * sinf(point.d.z)
         };
     };
 
+    Vector3 lookAt = ToCartesian(TrajectoryToPoint(t, m_config.lookAt)),
+            lookFrom = ToCartesian(TrajectoryToPoint(t, m_config.lookFrom));
+
+    std::cout << "lookFrom " << lookFrom.d.z << std::endl;
+
     m_camera.LookAt(
-        ToCartesian(TrajectoryToPoint(t, m_config.lookAt)),
-        ToCartesian(TrajectoryToPoint(t, m_config.lookFrom))
+        lookAt,
+        lookFrom
     );
 }
 
