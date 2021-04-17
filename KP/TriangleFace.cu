@@ -33,9 +33,7 @@ const
     float alpha = n.Dot((m_C - m_B).Cross(P - m_B)) / n.LengthSquared(),
           beta = n.Dot((m_A - m_C).Cross(P - m_C)) / n.LengthSquared();
 
-    float gamma = 1 - alpha - beta;
-
-    if (alpha >= 0 && beta >= 0 && gamma >= 0)
+    if (alpha >= 0 && beta >= 0 && 1 - alpha - beta >= 0)
     {
         hitRecord.t = t;
         hitRecord.u = alpha;
@@ -69,22 +67,15 @@ bool MappedTriangleFace::Hit(
     HitRecord &hitRecord
 ) const 
 {
-    bool hit = TriangleFace::Hit(
-        ray,
-        tMin,
-        hitRecord
-    );
-    
-    if (hit)
+    if (TriangleFace::Hit(ray, tMin, hitRecord))
     {
-        float u = hitRecord.u * m_mapping.m_A.d.x + hitRecord.v * m_mapping.m_B.d.x + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.x;
-        float v = hitRecord.u * m_mapping.m_A.d.y + hitRecord.v * m_mapping.m_B.d.y + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.y;
+        hitRecord.u = hitRecord.u * m_mapping.m_A.d.x + hitRecord.v * m_mapping.m_B.d.x + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.x;
+        hitRecord.v = hitRecord.u * m_mapping.m_A.d.y + hitRecord.v * m_mapping.m_B.d.y + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.y;
 
-        hitRecord.u = u;
-        hitRecord.v = v;
+        return true;
     }
 
-    return hit;
+    return false;
 }
 
 } // namespace RayTracing

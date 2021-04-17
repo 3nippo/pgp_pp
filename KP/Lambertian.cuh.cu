@@ -79,15 +79,13 @@ private:
         Ray &scattered
     ) const override
     {
-        Vector3 scatterDir = hitRecord.normal + RandomUnitSphereSurfaceVector();
-
-        if (scatterDir.NearZero())
-            scatterDir = hitRecord.normal;
-
         scattered = Ray(
             hitRecord.point,
-            scatterDir
+            hitRecord.normal + RandomUnitSphereSurfaceVector()
         );
+
+        if (scattered.direction.NearZero())
+            scattered.direction = hitRecord.normal;
 
         attenuation = (*m_albedo)->GetColor(hitRecord.u, hitRecord.v);
 

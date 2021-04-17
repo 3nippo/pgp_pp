@@ -31,12 +31,13 @@ private:
         Ray &scattered
     ) const override
     {
-        const Vector3 reflected = Vector3::Reflect(
-            ray.direction.UnitVector(), 
-            hitRecord.normal
+        scattered = Ray(
+            hitRecord.point, 
+            Vector3::Reflect(
+                ray.direction.UnitVector(), 
+                hitRecord.normal
+            )
         );
-
-        scattered = Ray(hitRecord.point, reflected);
         attenuation = (*m_albedo)->GetColor(hitRecord.u, hitRecord.v);
 
         return hitRecord.normal.Dot(scattered.direction) > 0;
