@@ -1,5 +1,5 @@
 CC = nvcc
-FLAGS = -g -gencode arch=compute_50,code=sm_50 -std=c++14
+FLAGS = -gencode arch=compute_50,code=sm_50 -std=c++14
 
 OBJECTS = Camera.o main.o RayTracer.o TriangleFace.o utils.o Vector3.o Image.o Config.o
 
