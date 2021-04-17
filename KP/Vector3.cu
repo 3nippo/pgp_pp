@@ -114,6 +114,12 @@ Vector3 Vector3::operator/(const float t) const
 }
 
 __host__ __device__
+const float& Vector3::operator[](const int i) const
+{
+    return *(reinterpret_cast<const float*>(&d) + i);
+}
+
+__host__ __device__
 float Vector3::Length() const
 {
     return sqrtf(LengthSquared());   

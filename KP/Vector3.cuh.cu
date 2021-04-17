@@ -52,6 +52,8 @@ public:
     Vector3& operator/=(const float t);
     __host__ __device__
     Vector3 operator/(const float t) const;
+    __host__ __device__
+    const float& operator[](const int i) const;
 
     __host__ __device__
     float Length() const;

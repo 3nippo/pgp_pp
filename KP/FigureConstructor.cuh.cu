@@ -2,11 +2,14 @@
 
 #include <vector>
 #include <cassert>
+#include <fstream>
+#include <string>
 
 #include "Vector3.cuh.cu"
 #include "PolygonsManager.cuh.cu"
 #include "Material.cuh.cu"
 #include "TriangleFace.cuh.cu"
+
 
 namespace RayTracing
 {
@@ -27,6 +30,8 @@ void PlaceSquaresOnEdge(
 {
     Vector3 shift = right.UnitVector() * a / (n+1);
     Point3 current = start + shift - right;
+
+    /* shift = shift / a * (a + shift.Length() / 2); */
 
     for (int i = 0; i < n; ++i, current += shift)
     {
@@ -49,6 +54,7 @@ enum class FigureId
     TexturedCube,
     Floor,
     FancyCube,
+    FancyDodecahedron,
     LightSource=Floor
 };
 
@@ -78,6 +84,194 @@ struct FigureConstructor
         assert(("Not implemented", false));
     }
 };
+
+template<bool isGPU>
+void BuildPolygonsFromFile(
+    const std::string &filename,
+    PolygonsManager<isGPU> &polygonsManager,
+    const Material * const * const material,
+    const Point3 &origin,
+    const float radius
+)
+{
+    std::ifstream obj(filename);
+    
+    std::vector<Vector3> vertices;
+
+    std::string token;
+    
+    while (obj >> token)
+    {
+        if (token == "v")
+        {
+            vertices.emplace_back();
+
+            obj >> vertices.back();
+
+            vertices.back() = vertices.back() * radius;
+        }
+        else if (token == "f")
+        {
+            std::string delimiter;
+
+            int indices[3];
+            int ignore;
+
+            obj >> indices[0] 
+                >> delimiter
+                >> ignore
+                >> indices[1]
+                >> delimiter
+                >> ignore
+                >> indices[2]
+                >> delimiter
+                >> ignore;
+            
+            polygonsManager.AddPolygon(TriangleFace(
+                vertices[indices[0] - 1],
+                vertices[indices[1] - 1],
+                vertices[indices[2] - 1],
+                origin,
+                material
+            ));
+        }
+        else
+        {
+            std::cout << token << std::endl;
+            assert(("Something went wrong", false));
+        }
+    }
+}
+
+template<bool isGPU>
+void BuildLightsFromFile(
+    const std::string &filename,
+    PolygonsManager<isGPU> &polygonsManager,
+    const Material * const * const material,
+    const Point3 &origin,
+    const float radius,
+    const int lightsNum
+)
+{
+    std::ifstream obj(filename);
+    
+    std::vector<Vector3> vertices,
+                         normals;
+
+    std::string token;
+
+    while (obj >> token)
+    {
+        if (token == "v")
+        {
+            vertices.emplace_back();
+
+            obj >> vertices.back();
+
+            vertices.back() = vertices.back() * radius + origin;
+        }
+        else if (token == "vn")
+        {
+            normals.emplace_back();
+
+            obj >> normals.back();
+        }
+        else if (token == "f")
+        {
+            std::string delimiter;
+
+            int indices[4];
+            int normalIndex;
+
+            obj >> indices[0] 
+                >> delimiter
+                >> normalIndex
+                >> indices[1]
+                >> delimiter
+                >> normalIndex
+                >> indices[2]
+                >> delimiter
+                >> normalIndex
+                >> indices[3]
+                >> delimiter
+                >> normalIndex;
+            
+            Vector3 a = vertices[indices[0] - 1] - vertices[indices[1] - 1];
+            Vector3 b = vertices[indices[2] - 1] - vertices[indices[1] - 1];
+
+            if (a.Length() > b.Length())
+                std::swap(a, b);
+
+            constexpr float eps = 0.001f;
+            Vector3 lightOrigin = vertices[indices[1] - 1] + a / 2;
+            
+            float side = b.Length();
+
+            a = a * 0.3 / 2;
+            b = b.UnitVector() * a.Length();
+
+            PlaceSquaresOnEdge(
+                polygonsManager,
+                material,
+                lightOrigin - eps * normals[normalIndex - 1].UnitVector(),
+                a,
+                b,
+                lightsNum,
+                side
+            );
+        }
+        else
+        {
+            std::cout << token << std::endl;
+            assert(("Something went wrong", false));
+        }
+    }
+}
+
+// Given materials: BigFace, SmallFace, Light
+template<bool isGPU>
+struct FigureConstructor<FigureId::FancyDodecahedron, isGPU>
+{
+static void ConstructFigure(
+    PolygonsManager<isGPU> &polygonsManager,
+    const std::vector<Material**> &materials,
+    const Point3 &origin,
+    const float radius,
+    const int edgeLightsNum
+)
+{
+    // big fases
+
+    BuildPolygonsFromFile(
+        "./penta.obj",
+        polygonsManager,
+        materials[0],
+        origin,
+        radius
+    );
+
+    // small faces
+    
+    BuildPolygonsFromFile(
+        "./polyedges.obj",
+        polygonsManager,
+        materials[1],
+        origin,
+        radius
+    );
+
+    // lights
+
+    BuildLightsFromFile(
+        "./edges.obj",
+        polygonsManager,
+        materials[2],
+        origin,
+        radius,
+        edgeLightsNum
+    );
+}
+}; // FancyDodecahedron
 
 // Given materials: BigFace, SmallFace, Light
 template<bool isGPU>
