@@ -404,7 +404,7 @@ void RayTracer::SetupCamera(const float t)
 
 std::string RayTracer::GetFrameName(const int index)
 {
-    char nameBuffer[FRAME_NAME_BUFFER_COUNT];
+    char nameBuffer[CONFIG_STRING_MAX_COUNT];
 
     sprintf(nameBuffer, m_config.outputTemplate, index);
 
