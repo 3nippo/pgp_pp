@@ -396,8 +396,6 @@ void RayTracer::SetupCamera(const float t)
     Vector3 lookAt = ToCartesian(TrajectoryToPoint(t, m_config.lookAt)),
             lookFrom = ToCartesian(TrajectoryToPoint(t, m_config.lookFrom));
 
-    std::cout << "lookFrom " << lookFrom.d.z << std::endl;
-
     m_camera.LookAt(
         lookAt,
         lookFrom
