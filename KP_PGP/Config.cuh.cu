@@ -7,6 +7,7 @@
 
 namespace RayTracing
 {
+constexpr size_t CONFIG_STRING_MAX_COUNT = 1024;
 
 struct Trajectory
 {
@@ -41,7 +42,7 @@ struct FloorData
 
 RayTracing::Vector3 A, B, C, D;
 
-std::string texturePath;
+char texturePath[CONFIG_STRING_MAX_COUNT];
 
 RayTracing::Color color;
 
@@ -65,7 +66,7 @@ struct Config
 
 int framesNum;
 
-char outputTemplate[1024];
+char outputTemplate[CONFIG_STRING_MAX_COUNT];
 
 int width;
 int height;
