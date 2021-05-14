@@ -296,6 +296,13 @@ size_t RayTracer::Render<false>(
     
         std::cerr << "> depth " << depth + 1 << "/" << m_config.recursionDepth << std::endl << std::endl;
         
+        int count = raysData.size() / CAP;
+        if (count > 5 * CAP)
+        {
+            std::cerr << "> rays count is too big, end work for this frame" << std::endl << std::endl;
+            break;
+        }
+
         #pragma omp parallel
         {
             std::vector<RayTraceData> privateNewRaysData;
