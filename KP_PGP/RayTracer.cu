@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <iterator>
 
 #include "HitRecord.cuh.cu"
 #include "utils.cuh.cu"
@@ -13,6 +15,8 @@
 #include <thrust/functional.h>
 #include <thrust/random/linear_congruential_engine.h>
 #include <thrust/random/uniform_int_distribution.h>
+
+#include <omp.h>
 
 namespace RayTracing
 {
@@ -281,93 +285,117 @@ size_t RayTracer::Render<false>(
     std::vector<float4> &picture
 )
 {
-    std::vector<RayTraceData> newRaysData;
-    std::vector<int> newRaysDataKeys;
-    
     size_t frameRaysNum = 0;
-
+    
     for (int depth = 0; depth < m_config.recursionDepth; ++depth)
     {
-        std::cerr << "> depth " << depth + 1 << "/" << m_config.recursionDepth << std::endl << std::endl;
-
-        for (int i = 0; i < raysData.size(); ++i)
-        {
-            HitRecord hitRecord;
-
-            hitRecord.t = INF;
-            
-            const Ray &ray = raysData[i].scattered;
-
-            if (!polygonsManager.Hit(ray, 0.001, hitRecord))
-            {
-                /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
-
-                /* Color emittedColor = Vector3(1, 1, 1) * raysData[id].attenuation; */
-
-                /* atomicAdd(&pixel->x, emittedColor.d.x); */
-                /* atomicAdd(&pixel->y, emittedColor.d.y); */
-                /* atomicAdd(&pixel->z, emittedColor.d.z); */
-
-                continue;
-            }
-            
-            if (hitRecord.material->Emits())
-            {
-                float4 &pixel = picture[raysDataKeys[i] + raysData[i].h * m_config.width];
-                
-                Color emittedColor = hitRecord.material->Emitted(hitRecord) * raysData[i].attenuation;
-                
-                pixel.x += emittedColor.d.x;
-                pixel.y += emittedColor.d.y;
-                pixel.z += emittedColor.d.z;
-            }
-
-            newRaysData.emplace_back();
-
-            if (
-                hitRecord.material->reflectance != 0
-                && hitRecord.material->Scatter(
-                    ray,
-                    hitRecord,
-                    newRaysData.back().attenuation,
-                    newRaysData.back().scattered
-                )
-            )
-            {
-                newRaysData.back().attenuation *= raysData[i].attenuation * hitRecord.material->reflectance;
-                
-                if (!newRaysData.back().attenuation.NearZero())
-                {
-                    newRaysDataKeys.push_back(raysDataKeys[i]);
-                    newRaysData.back().h = raysData[i].h;
-                }
-            }
-            else
-                newRaysData.pop_back();
-            
-            newRaysData.emplace_back();
-            newRaysData.back().attenuation = raysData[i].attenuation * hitRecord.material->transparency;
-
-            if (
-                hitRecord.material->transparency != 0
-                && !newRaysData.back().attenuation.NearZero()
-            )
-            {
-                newRaysDataKeys.push_back(raysDataKeys[i]);
-                newRaysData.back().h = raysData[i].h;
-                newRaysData.back().scattered = Ray(hitRecord.point, ray.direction);
-            }
-            else
-                newRaysData.pop_back();
-        }
-
         frameRaysNum += raysData.size();
+
+        std::vector<RayTraceData> newRaysData;
+        std::vector<int> newRaysDataKeys;
+    
+        std::cerr << "> depth " << depth + 1 << "/" << m_config.recursionDepth << std::endl << std::endl;
+        
+        #pragma omp parallel
+        {
+            std::vector<RayTraceData> privateNewRaysData;
+            std::vector<int> privateNewRaysDataKeys;
+
+            #pragma omp for schedule(static) nowait
+            for (int i = 0; i < raysData.size(); ++i)
+            {
+                HitRecord hitRecord;
+
+                hitRecord.t = INF;
+                
+                const Ray &ray = raysData[i].scattered;
+
+                if (!polygonsManager.Hit(ray, 0.001, hitRecord))
+                {
+                    /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
+
+                    /* Color emittedColor = Vector3(1, 1, 1) * raysData[id].attenuation; */
+
+                    /* atomicAdd(&pixel->x, emittedColor.d.x); */
+                    /* atomicAdd(&pixel->y, emittedColor.d.y); */
+                    /* atomicAdd(&pixel->z, emittedColor.d.z); */
+
+                    continue;
+                }
+                
+                if (hitRecord.material->Emits())
+                {
+                    float4 &pixel = picture[raysDataKeys[i] + raysData[i].h * m_config.width];
+                    
+                    Color emittedColor = hitRecord.material->Emitted(hitRecord) * raysData[i].attenuation;
+                    
+                    #pragma omp atomic
+                    pixel.x += emittedColor.d.x;
+                    #pragma omp atomic
+                    pixel.y += emittedColor.d.y;
+                    #pragma omp atomic
+                    pixel.z += emittedColor.d.z;
+                }
+
+                privateNewRaysData.emplace_back();
+
+                if (
+                    hitRecord.material->reflectance != 0
+                    && hitRecord.material->Scatter(
+                        ray,
+                        hitRecord,
+                        privateNewRaysData.back().attenuation,
+                        privateNewRaysData.back().scattered
+                    )
+                )
+                {
+                    privateNewRaysData.back().attenuation *= raysData[i].attenuation * hitRecord.material->reflectance;
+                    
+                    if (!privateNewRaysData.back().attenuation.NearZero())
+                    {
+                        privateNewRaysDataKeys.push_back(raysDataKeys[i]);
+                        privateNewRaysData.back().h = raysData[i].h;
+                    }
+                }
+                else
+                    privateNewRaysData.pop_back();
+                
+                privateNewRaysData.emplace_back();
+                privateNewRaysData.back().attenuation = raysData[i].attenuation * hitRecord.material->transparency;
+
+                if (
+                    hitRecord.material->transparency != 0
+                    && !privateNewRaysData.back().attenuation.NearZero()
+                )
+                {
+                    privateNewRaysDataKeys.push_back(raysDataKeys[i]);
+                    privateNewRaysData.back().h = raysData[i].h;
+                    privateNewRaysData.back().scattered = Ray(hitRecord.point, ray.direction);
+                }
+                else
+                    privateNewRaysData.pop_back();
+            }
+            
+            {
+            #pragma omp critical
+            {
+                std::copy(
+                    privateNewRaysData.begin(), 
+                    privateNewRaysData.end(), 
+                    std::back_inserter(newRaysData)
+                );
+
+                std::copy(
+                    privateNewRaysDataKeys.begin(), 
+                    privateNewRaysDataKeys.end(), 
+                    std::back_inserter(newRaysDataKeys)
+                );
+            }
+            }
+        }
 
         std::swap(newRaysData, raysData);
         std::swap(newRaysDataKeys, raysDataKeys);
-
-        newRaysData.clear();
-        newRaysDataKeys.clear();
     }
 
     return frameRaysNum;
