@@ -20,7 +20,7 @@ namespace
 template<bool isGPU>
 void PlaceSquaresOnEdge(
     PolygonsManager<isGPU> &polygonsManager,
-    const Material * const * const material,
+    Material * const * const material,
     const Point3 &start,
     const Vector3 &up,
     const Vector3 &right,
