@@ -22,25 +22,18 @@ template<>
 class PolygonsManager<false>
 {
 protected:
-    std::vector<std::vector<MappedTriangleFace>> m_faces;
-    std::vector<aabb> m_boxes;   
+    std::vector<MappedTriangleFace> m_faces;
 public:
     PolygonsManager() {}
     
-    void AddFigure(const aabb &box) 
-    { 
-        m_faces.emplace_back();
-        m_boxes.emplace_back(box);
-    }
-
     void AddPolygon(const TriangleFace &face)
     {
-        m_faces[m_boxes.size() - 1].emplace_back(face);
+        m_faces.emplace_back(face);
     }
 
     void AddPolygon(const MappedTriangleFace &face)
     {
-        m_faces[m_boxes.size() - 1].emplace_back(face);
+        m_faces.emplace_back(face);
     }
 
     void ConstructQuad(
@@ -92,35 +85,23 @@ public:
     bool Hit(
         const Ray &ray, 
         const float tMin,
-        HitRecord &hitRecord
+        HitRecord &hitRecord,
+        size_t index
     ) const
     {
-        bool hitAtLeastOnce = false;
-
-        for (int j = 0; j < m_boxes.size(); ++j)
-        {
-            if (!m_boxes[j].Hit(ray, tMin, hitRecord.t))
-                continue;
-
-            for (int i = 0; i < m_faces[j].size(); ++i)
-                hitAtLeastOnce |= m_faces[j][i].Hit(ray, tMin, hitRecord);
-        }
-
-        return hitAtLeastOnce;
+        return m_faces[index].Hit(ray, tMin, hitRecord);
     }
 
-    void CompleteAdding() {}
+    void InitBeforeRender() {}
 
-    void Deinit() {}
+    void DeinitAfterRender() {}
 };
 
 template<>
 class PolygonsManager<true> : public PolygonsManager<false>
 {
 private:
-    CudaMemoryLogic<CudaMemoryLogic<MappedTriangleFace>> m_faces_d;
-    CudaMemoryLogic<aabb> m_boxes_d;
-    std::vector<CudaMemoryLogic<MappedTriangleFace>> m_faces_keeper;
+    CudaMemoryLogic<MappedTriangleFace> m_faces_d;
 public:
     using PolygonsManager<false>::PolygonsManager;
     using PolygonsManager<false>::AddPolygon;
@@ -130,49 +111,24 @@ public:
     bool Hit(
         const Ray &ray, 
         const float tMin,
-        HitRecord &hitRecord
+        HitRecord &hitRecord,
+        size_t index
     ) const
     {
-        bool hitAtLeastOnce = false;
-
-        for (int j = 0; j < m_boxes_d.count; ++j)
-        {
-            if (!m_boxes_d.get()[j].Hit(ray, tMin, hitRecord.t))
-                continue;
-
-            for (int i = 0; i < m_faces_d.get()[j].count; ++i)
-                hitAtLeastOnce |= m_faces_d.get()[j].get()[i].Hit(ray, tMin, hitRecord);
-        }
-
-        return hitAtLeastOnce;
+        return m_faces_d.get()[index].Hit(ray, tMin, hitRecord);
     }
 
-    void CompleteAdding()
+    void InitBeforeRender()
     {
-        for (int i = 0; i < m_faces.size(); ++i)
-        {
-            m_faces_keeper.emplace_back();
-            m_faces_keeper.back().alloc(this->m_faces[i].size());
-            m_faces_keeper.back().memcpy(this->m_faces[i].data(), cudaMemcpyHostToDevice);
-        }
-        
-        m_faces_d.alloc(m_faces_keeper.size());
-        m_faces_d.memcpy(m_faces_keeper.data(), cudaMemcpyHostToDevice);
-
-        m_boxes_d.alloc(this->m_boxes.size());
-        m_boxes_d.memcpy(this->m_boxes.data(), cudaMemcpyHostToDevice);
+        m_faces_d.alloc(this->m_faces.size());
+        m_faces_d.memcpy(m_faces.data(), cudaMemcpyHostToDevice);
 
         this->m_faces.clear();
-        this->m_boxes.clear();
     }
     
-    void Deinit()
+    void DeinitAfterRender()
     {
-        for (int i = 0; i < m_faces_keeper.size(); ++i)
-            m_faces_keeper[i].dealloc();
-
         m_faces_d.dealloc();
-        m_boxes_d.dealloc();
     }
 };
 
