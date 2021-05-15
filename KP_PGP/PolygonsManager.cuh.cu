@@ -36,6 +36,11 @@ public:
         m_faces.emplace_back(face);
     }
 
+    std::vector<MappedTriangleFace>& GetFaces()
+    {
+        return m_faces;
+    }
+
     void ConstructQuad(
         const Point3 &A, 
         const Point3 &B,
@@ -106,6 +111,7 @@ public:
     using PolygonsManager<false>::PolygonsManager;
     using PolygonsManager<false>::AddPolygon;
     using PolygonsManager<false>::ConstructQuad;
+    using PolygonsManager<false>::GetFaces;
 
     __device__
     bool Hit(
