@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <limits>
+#include <iostream>
 
 namespace RayTracing
 {
@@ -31,7 +32,7 @@ static void FromFaces(
     size_t end
 ) 
 {
-    nodes.emplace_back(BVHNode(faces, nodes, start, end));   
+    nodes.emplace_back(faces, nodes, start, end);   
 }
 
 BVHNode(
@@ -41,6 +42,7 @@ BVHNode(
     size_t end
 )
 {
+    std::cout << start << ' ' << end << std::endl;
     int axis = GenRandom(0, 2.999);
 
     int spanCount = end - start;
