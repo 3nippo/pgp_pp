@@ -199,6 +199,7 @@ void Logic(
     BVH<isGPU> bvh(polygonsManager);
 
     polygonsManager.InitBeforeRender();
+    bvh.InitBeforeRender();
     
     RayTracer rayTracer(config, start, end);
     
@@ -206,6 +207,7 @@ void Logic(
     
     floorImage.Deinit();
     polygonsManager.DeinitAfterRender();
+    bvh.DeinitAfterRender();
 
     if (isGPU)
     {
