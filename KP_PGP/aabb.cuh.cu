@@ -6,6 +6,8 @@
 #include "Vector3.cuh.cu"
 #include "Ray.cuh.cu"
 
+#include <iostream>
+
 namespace RayTracing
 {
 
@@ -57,7 +59,7 @@ public:
 
     static bool Compare(const aabb& left, const aabb& right, int axis)
     {
-        return *(reinterpret_cast<const float*>(&left.m_min.d) + axis) < *(reinterpret_cast<const float*>(&right.m_min.d) + axis);
+        return left.m_min[axis] < right.m_min[axis];
     }
 };
 
