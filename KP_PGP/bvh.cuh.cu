@@ -20,6 +20,10 @@ size_t left;
 size_t right;
 size_t polygonIndex;
 
+BVHNode()
+    : polygonIndex(NULL_INDEX)
+{}
+
 static void FromFaces(
     std::vector<MappedTriangleFace>& faces,
     std::vector<BVHNode>& nodes,
@@ -41,8 +45,6 @@ BVHNode(
 
     int spanCount = end - start;
     
-    polygonIndex = NULL_INDEX;
-
     auto cmp = [axis](const MappedTriangleFace& a, const MappedTriangleFace& b)
     {
         return aabb::Compare(a.BoundingBox(), b.BoundingBox(), axis);
