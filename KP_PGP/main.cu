@@ -20,7 +20,7 @@
 #include "DiffuseLight.cuh.cu"
 #include "DummyAllocs.cuh.cu"
 #include "Config.cuh.cu"
-#include "aabb.cuh.cu"
+#include "bvh.cuh.cu"
 
 #include <curand.h>
 #include <curand_kernel.h>
@@ -97,11 +97,6 @@ void Logic(
 
     ObjectAllocator<DiffuseLight, Material, Texture**> edgeLightMaterial(edgeLightTexture.ptr);
     
-    polygonsManager.AddFigure(aabb{
-        config.A.origin - Vector3(1, 1, 1) * (config.A.radius+1),
-        config.A.origin + Vector3(1, 1, 1) * (config.A.radius+1)
-    });
-
     FigureConstructor<FigureId::FancyCube, isGPU>::ConstructFigure(
         polygonsManager,
         {
@@ -123,11 +118,6 @@ void Logic(
         config.B.reflectance,
         mirrorTexture.ptr
     );
-
-    polygonsManager.AddFigure(aabb{
-        config.B.origin - Vector3(1, 1, 1) * config.B.radius,
-        config.B.origin + Vector3(1, 1, 1) * config.B.radius
-    });
 
     FigureConstructor<FigureId::FancyDodecahedron, isGPU>::ConstructFigure(
         polygonsManager,
@@ -169,11 +159,6 @@ void Logic(
             lightSourcesTextures.back().ptr
         );
 
-        polygonsManager.AddFigure(aabb{
-            config.lightSources[i].origin - Vector3(1, 1, 1) * config.lightSources[i].radius,
-            config.lightSources[i].origin + Vector3(1, 1, 1) * config.lightSources[i].radius
-        });
-
         FigureConstructor<FigureId::LightSource, isGPU>::ConstructFigure(
             polygonsManager,
             { lightSourcesMaterials[i].ptr },
@@ -201,11 +186,6 @@ void Logic(
         states.get()
     );
 
-    polygonsManager.AddFigure(aabb{
-        Vector3(1, 1, 1) * -100,
-        Vector3(1, 1, 1) * 100
-    });
-
     FigureConstructor<FigureId::Floor, isGPU>::ConstructFigureByPoints(
         polygonsManager,
         { floorMaterial.ptr },
@@ -214,15 +194,17 @@ void Logic(
         config.floorData.C,
         config.floorData.D
     );
+    
+    BVH<isGPU> bvh(polygonsManager);
 
-    polygonsManager.CompleteAdding();
+    polygonsManager.InitBeforeRender();
     
     RayTracer rayTracer(config, start, end);
     
-    rayTracer.RenderFrames(polygonsManager);
+    rayTracer.RenderFrames(bvh);
     
     floorImage.Deinit();
-    polygonsManager.Deinit();
+    polygonsManager.DeinitAfterRender();
 
     if (isGPU)
     {

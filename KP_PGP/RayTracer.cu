@@ -37,7 +37,7 @@ void SetValues(
 
 __global__
 void ComputeNextRays(
-    const PolygonsManager<true> polygonsManager,
+    const BVH<true> bvh,
     const RayTraceData* const raysData,
     const int* const raysDataKeys,
     const int raysCount,
@@ -57,7 +57,7 @@ void ComputeNextRays(
         
         const Ray &ray = raysData[id].scattered;
 
-        if (!polygonsManager.Hit(ray, 0.001, hitRecord))
+        if (!bvh.Hit(ray, 0.001, hitRecord))
         {
             /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
 
@@ -163,7 +163,7 @@ void RayTracer::FillRaysData(
 
 template<>
 size_t RayTracer::Render<true>(
-    const PolygonsManager<true> &polygonsManager,
+    const BVH<true> &bvh,
     std::vector<RayTraceData> &raysData,
     std::vector<int> &raysDataKeys,
     std::vector<float4> &picture
@@ -234,7 +234,7 @@ size_t RayTracer::Render<true>(
 
             // render step
             ComputeNextRays<<<GRID_SIZE, BLOCK_SIZE>>>(
-                polygonsManager,
+                bvh,
                 currentRaysData_d.get(),
                 currentRaysDataKeys_d.get(),
                 count,
@@ -279,7 +279,7 @@ size_t RayTracer::Render<true>(
 
 template<>
 size_t RayTracer::Render<false>(
-    const PolygonsManager<false> &polygonsManager,
+    const BVH<false> &bvh,
     std::vector<RayTraceData> &raysData,
     std::vector<int> &raysDataKeys,
     std::vector<float4> &picture
@@ -317,7 +317,7 @@ size_t RayTracer::Render<false>(
                 
                 const Ray &ray = raysData[i].scattered;
 
-                if (!polygonsManager.Hit(ray, 0.001, hitRecord))
+                if (!bvh.Hit(ray, 0.001, hitRecord))
                 {
                     /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
 

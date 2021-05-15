@@ -9,9 +9,9 @@
 #include "Config.cuh.cu"
 #include "Vector3.cuh.cu"
 #include "Ray.cuh.cu"
-#include "PolygonsManager.cuh.cu"
 #include "dummy_helper.cuh.cu"
 #include "Camera.cuh.cu"
+#include "bvh.cuh.cu"
 
 namespace RayTracing
 {
@@ -56,7 +56,7 @@ public:
     );
     
     template<bool isGPU>
-    void RenderFrames(const PolygonsManager<isGPU> &polygonsManager)
+    void RenderFrames(const BVH<isGPU> &bvh)
     {
         std::vector<float4> picture;
         
@@ -79,7 +79,7 @@ public:
             cudaTimer.start();
 
             size_t numberOfRays = Render<isGPU>(
-                polygonsManager, 
+                bvh, 
                 raysData, 
                 raysDataKeys, 
                 picture
@@ -115,7 +115,7 @@ private:
     
     template<bool isGPU>
     size_t Render(
-        const PolygonsManager<isGPU> &polygonsManager,
+        const BVH<isGPU> &bvh,
         std::vector<RayTraceData> &raysData,
         std::vector<int> &raysDataKeys,
         std::vector<float4> &picture
