@@ -47,7 +47,7 @@ public:
         const Point3 &C,
         const Point3 &D,
         const Point3 &origin,
-        const Material * const * const material
+        Material * const * const material
     )
     {
         AddPolygon(
@@ -69,7 +69,7 @@ public:
         const Point3 &C,
         const Point3 &D,
         const Point3 &origin,
-        const Material * const * const material,
+        Material * const * const material,
         const TriangleMapping &mapping1,
         const TriangleMapping &mapping2
     )
