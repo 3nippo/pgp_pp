@@ -19,12 +19,14 @@ public:
         : m_min(a), m_max(b)
     {}
 
-    Point3 min() const {return m_min; }
-    Point3 max() const {return m_max; }
+    Point3 min() const { return m_min; }
+    Point3 max() const { return m_max; }
     
     __host__ __device__
-    bool Hit(const Ray& r, double t_min, double t_max) const {
-        for (int a = 0; a < 3; a++) {
+    bool Hit(const Ray& r, double t_min, double t_max) const 
+    {
+        for (int a = 0; a < 3; a++) 
+        {
             auto t0 = fminf((m_min[a] - r.origin[a]) / r.direction[a],
                            (m_max[a] - r.origin[a]) / r.direction[a]);
             auto t1 = fmaxf((m_min[a] - r.origin[a]) / r.direction[a],
