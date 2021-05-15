@@ -111,13 +111,10 @@ protected:
     PolygonsManager<false> &m_polygonsManager;
     std::vector<BVHNode> m_nodes;
 public:
-    BVH(
-        std::vector<MappedTriangleFace>& faces,
-        PolygonsManager<false> &polygonsManager
-    )
+    BVH(PolygonsManager<false>& polygonsManager)
         : m_polygonsManager(polygonsManager)
     {
-        BVHNode::FromFaces(faces, m_nodes, 0, faces.size());
+        BVHNode::FromFaces(m_polygonsManager.GetFaces(), m_nodes, 0, m_polygonsManager.GetFaces().size());
     }
 
     void InitBeforeRender() {}
@@ -167,13 +164,10 @@ private:
     CudaMemoryLogic<BVHNode> m_nodes_d;
 
 public:
-    BVH(
-        std::vector<MappedTriangleFace>& faces,
-        PolygonsManager<true> &polygonsManager
-    )
+    BVH(PolygonsManager<true>& polygonsManager)
         : m_polygonsManager(polygonsManager)
     {
-        BVHNode::FromFaces(faces, m_nodes, 0, faces.size());
+        BVHNode::FromFaces(m_polygonsManager.GetFaces(), m_nodes, 0, m_polygonsManager.GetFaces().size());
     }
     
     void InitBeforeRender() 
