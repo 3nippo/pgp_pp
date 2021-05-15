@@ -88,8 +88,9 @@ bool MappedTriangleFace::Hit(
 {
     if (TriangleFace::Hit(ray, tMin, hitRecord))
     {
-        hitRecord.u = hitRecord.u * m_mapping.m_A.d.x + hitRecord.v * m_mapping.m_B.d.x + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.x;
+        float u = hitRecord.u * m_mapping.m_A.d.x + hitRecord.v * m_mapping.m_B.d.x + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.x;
         hitRecord.v = hitRecord.u * m_mapping.m_A.d.y + hitRecord.v * m_mapping.m_B.d.y + (1 - hitRecord.u - hitRecord.v) * m_mapping.m_C.d.y;
+        hitRecord.u = u;
 
         return true;
     }
