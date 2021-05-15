@@ -108,12 +108,14 @@ template<>
 class BVH<false>
 {
 protected:
-    PolygonsManager<false> m_polygonsManager;
+    PolygonsManager<false> &m_polygonsManager;
     std::vector<BVHNode> m_nodes;
 public:
     BVH(
-        std::vector<MappedTriangleFace>& faces
+        std::vector<MappedTriangleFace>& faces,
+        PolygonsManager<false> &polygonsManager
     )
+        : m_polygonsManager(polygonsManager)
     {
         BVHNode::FromFaces(faces, m_nodes, 0, faces.size());
     }
@@ -157,20 +159,27 @@ protected:
 };
 
 template<>
-class BVH<true> : public BVH<false>
+class BVH<true>
 {
 private:
     PolygonsManager<true> m_polygonsManager;
+    std::vector<BVHNode> m_nodes;
     CudaMemoryLogic<BVHNode> m_nodes_d;
 
 public:
-    using BVH<false>::BVH;
-
+    BVH(
+        std::vector<MappedTriangleFace>& faces,
+        PolygonsManager<true> &polygonsManager
+    )
+        : m_polygonsManager(polygonsManager)
+    {
+        BVHNode::FromFaces(faces, m_nodes, 0, faces.size());
+    }
     
     void InitBeforeRender() 
     {
-        m_nodes_d.memcpy(this->m_nodes.data(), cudaMemcpyHostToDevice);
-        this->m_nodes.clear();
+        m_nodes_d.memcpy(m_nodes.data(), cudaMemcpyHostToDevice);
+        m_nodes.clear();
     }
     void DeinitAfterRender() 
     {
