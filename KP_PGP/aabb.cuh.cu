@@ -35,7 +35,7 @@ public:
                            (m_max[a] - r.origin[a]) / r.direction[a]);
             t_min = fmaxf(t0, t_min);
             t_max = fminf(t1, t_max);
-            if (t_max <= t_min)
+            if (t_max < t_min)
                 return false;
         }
         return true;

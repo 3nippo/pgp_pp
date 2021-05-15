@@ -319,13 +319,16 @@ size_t RayTracer::Render<false>(
 
                 if (!bvh.Hit(ray, 0.001, hitRecord))
                 {
-                    /* float4 *pixel = picture + raysDataKeys[id] + raysData[id].h * width; */
-
-                    /* Color emittedColor = Vector3(1, 1, 1) * raysData[id].attenuation; */
-
-                    /* atomicAdd(&pixel->x, emittedColor.d.x); */
-                    /* atomicAdd(&pixel->y, emittedColor.d.y); */
-                    /* atomicAdd(&pixel->z, emittedColor.d.z); */
+                    /* float4 &pixel = picture[raysDataKeys[i] + raysData[i].h * m_config.width]; */
+                    
+                    /* Color emittedColor = Color(1, 1, 1) * raysData[i].attenuation; */
+                    
+                    /* #pragma omp atomic */
+                    /* pixel.x += emittedColor.d.x; */
+                    /* #pragma omp atomic */
+                    /* pixel.y += emittedColor.d.y; */
+                    /* #pragma omp atomic */
+                    /* pixel.z += emittedColor.d.z; */
 
                     continue;
                 }

@@ -198,16 +198,16 @@ void Logic(
     
     BVH<isGPU> bvh(polygonsManager);
 
-    /* polygonsManager.InitBeforeRender(); */
-    /* bvh.InitBeforeRender(); */
+    polygonsManager.InitBeforeRender();
+    bvh.InitBeforeRender();
     
-    /* RayTracer rayTracer(config, start, end); */
+    RayTracer rayTracer(config, start, end);
     
-    /* rayTracer.RenderFrames(bvh); */
+    rayTracer.RenderFrames(bvh);
     
-    /* floorImage.Deinit(); */
-    /* polygonsManager.DeinitAfterRender(); */
-    /* bvh.DeinitAfterRender(); */
+    floorImage.Deinit();
+    polygonsManager.DeinitAfterRender();
+    bvh.DeinitAfterRender();
 
     if (isGPU)
     {
@@ -333,19 +333,6 @@ try
         RecvSome(&end, MPI_INT, 1);
         
         RecvSome(&config, MPI_CHAR, sizeof(RayTracing::Config));
-
-        std::cout << config.outputTemplate << std::endl;
-        
-        std::cout << config.width << std::endl;
-        
-        std::cout << config.lightSources[0].color.d.x 
-                  << ' '
-                  << config.lightSources[0].color.d.y
-                  << ' '
-                  << config.lightSources[0].color.d.z
-                  << std::endl;
-
-        std::cout << config.floorData.texturePath << std::endl;
     }
     
     if (useGPU)
