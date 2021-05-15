@@ -20,6 +20,7 @@
 #include "DiffuseLight.cuh.cu"
 #include "DummyAllocs.cuh.cu"
 #include "Config.cuh.cu"
+
 #include "bvh.cuh.cu"
 
 #include <curand.h>
