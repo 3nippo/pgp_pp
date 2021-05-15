@@ -22,7 +22,7 @@ public:
         const Point3 &B,
         const Point3 &C,
         const Point3 &origin,
-        Material * const * const material=nullptr
+        Material** material=nullptr
     );
 
     __host__ __device__
@@ -47,7 +47,7 @@ public:
         const Point3 &B,
         const Point3 &C,
         const Point3 &origin,
-        Material * const * const material,
+        Material** material,
         const TriangleMapping &mapping
     );
 

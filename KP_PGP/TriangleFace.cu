@@ -10,7 +10,7 @@ TriangleFace::TriangleFace(
     const Point3 &B,
     const Point3 &C,
     const Point3 &origin,
-    Material * const * const material
+    Material** material
 ) : Plane(A, B, C, origin),
     m_material(material)
 {}
@@ -72,7 +72,7 @@ MappedTriangleFace::MappedTriangleFace(
     const Point3 &B,
     const Point3 &C,
     const Point3 &origin,
-    Material * const * const material,
+    Material** material,
     const TriangleMapping &mapping
 )
     : TriangleFace(A, B, C, origin, material),

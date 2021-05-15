@@ -20,7 +20,7 @@ namespace
 template<bool isGPU>
 void PlaceSquaresOnEdge(
     PolygonsManager<isGPU> &polygonsManager,
-    Material * const * const material,
+    Material** material,
     const Point3 &start,
     const Vector3 &up,
     const Vector3 &right,
@@ -89,7 +89,7 @@ template<bool isGPU>
 void BuildPolygonsFromFile(
     const std::string &filename,
     PolygonsManager<isGPU> &polygonsManager,
-    Material * const * const material,
+    Material** material,
     const Point3 &origin,
     const float radius
 )
@@ -147,7 +147,7 @@ template<bool isGPU>
 void BuildLightsFromFile(
     const std::string &filename,
     PolygonsManager<isGPU> &polygonsManager,
-    Material * const * const material,
+    Material**  material,
     const Point3 &origin,
     const float radius,
     const int lightsNum
