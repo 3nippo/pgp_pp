@@ -42,7 +42,6 @@ BVHNode(
     size_t end
 )
 {
-    std::cout << start << ' ' << end << std::endl;
     int axis = GenRandom(0, 2.999);
 
     int spanCount = end - start;
@@ -85,13 +84,12 @@ BVHNode(
     else
     {
         std::sort(faces.begin() + start, faces.begin() + end, cmp);
-
         size_t mid = start + spanCount/2;
         
-        nodes.emplace_back(faces, nodes, start, mid);
+        nodes.push_back(BVHNode(faces, nodes, start, mid));
         left = nodes.size() - 1;
 
-        nodes.emplace_back(faces, nodes, mid, end);
+        nodes.push_back(BVHNode(faces, nodes, mid, end));
         right = nodes.size() - 1;
     }
 

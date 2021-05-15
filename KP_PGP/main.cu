@@ -198,16 +198,16 @@ void Logic(
     
     BVH<isGPU> bvh(polygonsManager);
 
-    polygonsManager.InitBeforeRender();
-    bvh.InitBeforeRender();
+    /* polygonsManager.InitBeforeRender(); */
+    /* bvh.InitBeforeRender(); */
     
-    RayTracer rayTracer(config, start, end);
+    /* RayTracer rayTracer(config, start, end); */
     
-    rayTracer.RenderFrames(bvh);
+    /* rayTracer.RenderFrames(bvh); */
     
-    floorImage.Deinit();
-    polygonsManager.DeinitAfterRender();
-    bvh.DeinitAfterRender();
+    /* floorImage.Deinit(); */
+    /* polygonsManager.DeinitAfterRender(); */
+    /* bvh.DeinitAfterRender(); */
 
     if (isGPU)
     {
