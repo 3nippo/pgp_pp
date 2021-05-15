@@ -196,9 +196,9 @@ void Logic(
         config.floorData.D
     );
     
+    polygonsManager.InitBeforeRender();
     BVH<isGPU> bvh(polygonsManager);
 
-    polygonsManager.InitBeforeRender();
     bvh.InitBeforeRender();
     
     RayTracer rayTracer(config, start, end);

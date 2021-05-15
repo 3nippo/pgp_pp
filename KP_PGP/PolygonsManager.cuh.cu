@@ -112,7 +112,7 @@ public:
     using PolygonsManager<false>::AddPolygon;
     using PolygonsManager<false>::ConstructQuad;
     using PolygonsManager<false>::GetFaces;
-
+    
     __device__
     bool Hit(
         const Ray &ray, 
@@ -129,7 +129,7 @@ public:
         m_faces_d.alloc(this->m_faces.size());
         m_faces_d.memcpy(m_faces.data(), cudaMemcpyHostToDevice);
 
-        this->m_faces.clear();
+        /* this->m_faces.clear(); */
     }
     
     void DeinitAfterRender()

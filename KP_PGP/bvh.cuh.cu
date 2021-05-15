@@ -26,7 +26,7 @@ BVHNode()
 {}
 
 static void FromFaces(
-    std::vector<MappedTriangleFace>& faces,
+    const std::vector<MappedTriangleFace>& faces,
     std::vector<BVHNode>& nodes,
     size_t start,
     size_t end
@@ -177,7 +177,7 @@ private:
     CudaMemoryLogic<BVHNode> m_nodes_d;
 
 public:
-    BVH(PolygonsManager<true>& polygonsManager)
+    BVH(PolygonsManager<true> polygonsManager)
         : m_polygonsManager(polygonsManager)
     {
         BVHNode::FromFaces(m_polygonsManager.GetFaces(), m_nodes, 0, m_polygonsManager.GetFaces().size());
@@ -188,7 +188,7 @@ public:
         m_nodes_d.alloc(m_nodes.size());
         m_nodes_d.memcpy(m_nodes.data(), cudaMemcpyHostToDevice);
         
-        m_nodes.clear();
+        /* m_nodes.clear(); */
     }
     void DeinitAfterRender() 
     {
