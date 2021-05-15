@@ -153,16 +153,7 @@ protected:
     {
         if (!m_nodes[nodeIndex].box.Hit(ray, tMin, hitRecord.t))
             return false;
-        auto tos = [](Point3 a)
-        {
-            return std::to_string(a.d.x) + ' ' + std::to_string(a.d.y) + ' ' + std::to_string(a.d.z);
-        };
         
-        /* std::cout << depth << std::endl; */
-        
-        /* if (depth == 0) */
-        /*     assert(m_nodes[nodeIndex].polygonIndex == BVHNode::NULL_INDEX); */
-
         if (m_nodes[nodeIndex].polygonIndex != BVHNode::NULL_INDEX)
         {
             return m_polygonsManager.Hit(
@@ -173,8 +164,7 @@ protected:
             );
         }
 
-        return HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].left, depth+1)
-            || HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].right, depth+1);
+        return HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].left, depth+1) | HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].right, depth+1);
     }
 };
 
