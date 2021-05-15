@@ -210,24 +210,24 @@ private:
         const Ray &ray, 
         const float tMin,
         HitRecord &hitRecord,
-        size_t index
+        size_t nodeIndex,
+        int depth = 0
     ) const
     {
-        if (!m_nodes_d.get()[index].box.Hit(ray, tMin, hitRecord.t))
+        if (!m_nodes_d.get()[nodeIndex].box.Hit(ray, tMin, hitRecord.t))
             return false;
-
-        if (m_nodes_d.get()[index].polygonIndex != BVHNode::NULL_INDEX)
+        
+        if (m_nodes_d.get()[nodeIndex].polygonIndex != BVHNode::NULL_INDEX)
         {
             return m_polygonsManager.Hit(
                 ray,
                 tMin,
                 hitRecord,
-                index
+                m_nodes_d.get()[nodeIndex].polygonIndex
             );
         }
 
-        return HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[index].left)
-            || HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[index].right);
+        return HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[nodeIndex].left, depth+1) | HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[nodeIndex].right, depth+1);
     }
 };
 
