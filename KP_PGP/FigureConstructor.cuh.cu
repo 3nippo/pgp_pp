@@ -147,7 +147,7 @@ template<bool isGPU>
 void BuildLightsFromFile(
     const std::string &filename,
     PolygonsManager<isGPU> &polygonsManager,
-    const Material * const * const material,
+    Material * const * const material,
     const Point3 &origin,
     const float radius,
     const int lightsNum
