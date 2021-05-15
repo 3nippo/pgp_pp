@@ -11,9 +11,9 @@
 
 namespace RayTracing
 {
-
 struct BVHNode
 {
+static constexpr size_t NULL_INDEX = std::numeric_limits<size_t>::max();
 aabb box;
 
 size_t left;
@@ -41,7 +41,7 @@ BVHNode(
 
     int spanCount = end - start;
     
-    polygonIndex = std::numeric_limits<size_t>::max();
+    polygonIndex = NULL_INDEX;
 
     auto cmp = [axis](const MappedTriangleFace& a, const MappedTriangleFace& b)
     {
@@ -140,7 +140,7 @@ protected:
         if (!m_nodes[index].box.Hit(ray, tMin, hitRecord.t))
             return false;
 
-        if (m_nodes[index].polygonIndex != std::numeric_limits<size_t>::max())
+        if (m_nodes[index].polygonIndex != BVHNode::NULL_INDEX)
         {
             return m_polygonsManager.Hit(
                 ray,
@@ -203,7 +203,7 @@ private:
         if (!m_nodes_d.get()[index].box.Hit(ray, tMin, hitRecord.t))
             return false;
 
-        if (m_nodes_d.get()[index].polygonIndex != std::numeric_limits<size_t>::max())
+        if (m_nodes_d.get()[index].polygonIndex != BVHNode::NULL_INDEX)
         {
             return m_polygonsManager.Hit(
                 ray,
