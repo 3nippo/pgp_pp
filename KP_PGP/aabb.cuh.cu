@@ -54,6 +54,11 @@ public:
             }
         };
     }
+
+    static bool Compare(const aabb& left, const aabb& right, int axis)
+    {
+        return *reinterpret_cast<const float*>(&left.m_min.d + axis) < *reinterpret_cast<const float*>(&right.m_min.d + axis);
+    }
 };
 
 } // RayTracing
