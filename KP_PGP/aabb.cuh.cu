@@ -38,6 +38,22 @@ public:
         }
         return true;
     }
+
+    static aabb SurroundingBox(const aabb &a, const aabb &b)
+    {
+        return aabb{
+            Point3{
+                std::min(a.m_min.d.x, b.m_min.d.x),
+                std::min(a.m_min.d.y, b.m_min.d.y),
+                std::min(a.m_min.d.z, b.m_min.d.z),
+            },
+            Point3{
+                std::max(a.m_max.d.x, b.m_max.d.x),
+                std::max(a.m_max.d.y, b.m_max.d.y),
+                std::max(a.m_max.d.z, b.m_max.d.z),
+            }
+        };
+    }
 };
 
 } // RayTracing
