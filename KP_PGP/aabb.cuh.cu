@@ -15,8 +15,8 @@ private:
     Point3 m_min, m_max;
 public:
     aabb() {}
-    aabb(const Point3& a, const Point3& b) 
-        : m_min(a), m_max(b)
+    aabb(const Point3& min, const Point3& max) 
+        : m_min(min), m_max(max)
     {}
 
     Point3 min() const { return m_min; }
