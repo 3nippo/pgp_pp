@@ -15,7 +15,7 @@ namespace RayTracing
 class TriangleFace : public Plane
 {
 private:
-    Material * const * const m_material;
+    Material** m_material;
 public:
     TriangleFace(
         const Point3 &A, 
@@ -24,7 +24,7 @@ public:
         const Point3 &origin,
         Material * const * const material=nullptr
     );
-    
+
     __host__ __device__
     bool Hit(
         const Ray &ray, 
