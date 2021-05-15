@@ -178,7 +178,9 @@ public:
     
     void InitBeforeRender() 
     {
+        m_nodes_d.alloc(m_nodes.size());
         m_nodes_d.memcpy(m_nodes.data(), cudaMemcpyHostToDevice);
+        
         m_nodes.clear();
     }
     void DeinitAfterRender() 
