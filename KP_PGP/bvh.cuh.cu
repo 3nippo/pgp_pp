@@ -32,11 +32,16 @@ static void FromFaces(
     size_t end
 ) 
 {
-    nodes.emplace_back(faces, nodes, start, end);   
+    std::vector<std::pair<MappedTriangleFace, size_t>> indexedFaces;
+    
+    for (size_t i = 0; i < faces.size(); ++i)
+        indexedFaces.push_back({ faces[i], i });
+
+    nodes.push_back(BVHNode(indexedFaces, nodes, start, end));   
 }
 
 BVHNode(
-    std::vector<MappedTriangleFace>& faces,
+    std::vector<std::pair<MappedTriangleFace, size_t>>& indexedFaces,
     std::vector<BVHNode>& nodes,
     size_t start,
     size_t end
@@ -46,15 +51,17 @@ BVHNode(
 
     int spanCount = end - start;
     
-    auto cmp = [axis](const MappedTriangleFace& a, const MappedTriangleFace& b)
+    auto cmp = [axis](const std::pair<MappedTriangleFace, size_t>& a, const std::pair<MappedTriangleFace, size_t>& b)
     {
-        return aabb::Compare(a.BoundingBox(), b.BoundingBox(), axis);
+        return aabb::Compare(a.first.BoundingBox(), b.first.BoundingBox(), axis);
     };
+
+    polygonIndex = NULL_INDEX;
 
     if (spanCount == 1)
     {
-        polygonIndex = start;
-        box = faces[polygonIndex].BoundingBox();
+        polygonIndex = indexedFaces[start].second;
+        box = indexedFaces[start].first.BoundingBox();
 
         return;
     }
@@ -64,32 +71,36 @@ BVHNode(
         nodes.emplace_back();
         nodes.emplace_back();
 
-        if (cmp(faces[start], faces[start+1]))
+        if (cmp(indexedFaces[start], indexedFaces[start+1]))
         {
             left = nodes.size() - 2;
-            nodes[left].polygonIndex = start;
+            nodes[left].polygonIndex = indexedFaces[start].second;
+            nodes[left].box = indexedFaces[start].first.BoundingBox();
 
             right = nodes.size() - 1;
-            nodes[right].polygonIndex = start+1;
+            nodes[right].polygonIndex = indexedFaces[start+1].second;
+            nodes[right].box = indexedFaces[start+1].first.BoundingBox();
         }
         else
         {
             right = nodes.size() - 2;
-            nodes[right].polygonIndex = start;
+            nodes[right].polygonIndex = indexedFaces[start].second;
+            nodes[right].box = indexedFaces[start].first.BoundingBox();
 
             left = nodes.size() - 1;
-            nodes[left].polygonIndex = start+1;
+            nodes[left].polygonIndex = indexedFaces[start+1].second;
+            nodes[left].box = indexedFaces[start+1].first.BoundingBox();
         }
     }
     else
     {
-        std::sort(faces.begin() + start, faces.begin() + end, cmp);
+        std::sort(indexedFaces.begin() + start, indexedFaces.begin() + end, cmp);
         size_t mid = start + spanCount/2;
         
-        nodes.push_back(BVHNode(faces, nodes, start, mid));
+        nodes.push_back(BVHNode(indexedFaces, nodes, start, mid));
         left = nodes.size() - 1;
 
-        nodes.push_back(BVHNode(faces, nodes, mid, end));
+        nodes.push_back(BVHNode(indexedFaces, nodes, mid, end));
         right = nodes.size() - 1;
     }
 
@@ -136,24 +147,34 @@ protected:
         const Ray &ray, 
         const float tMin,
         HitRecord &hitRecord,
-        size_t index
+        size_t nodeIndex,
+        int depth = 0
     ) const
     {
-        if (!m_nodes[index].box.Hit(ray, tMin, hitRecord.t))
+        if (!m_nodes[nodeIndex].box.Hit(ray, tMin, hitRecord.t))
             return false;
+        auto tos = [](Point3 a)
+        {
+            return std::to_string(a.d.x) + ' ' + std::to_string(a.d.y) + ' ' + std::to_string(a.d.z);
+        };
+        
+        /* std::cout << depth << std::endl; */
+        
+        /* if (depth == 0) */
+        /*     assert(m_nodes[nodeIndex].polygonIndex == BVHNode::NULL_INDEX); */
 
-        if (m_nodes[index].polygonIndex != BVHNode::NULL_INDEX)
+        if (m_nodes[nodeIndex].polygonIndex != BVHNode::NULL_INDEX)
         {
             return m_polygonsManager.Hit(
                 ray,
                 tMin,
                 hitRecord,
-                index
+                m_nodes[nodeIndex].polygonIndex
             );
         }
 
-        return HitHelper(ray, tMin, hitRecord, m_nodes[index].left)
-            || HitHelper(ray, tMin, hitRecord, m_nodes[index].right);
+        return HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].left, depth+1)
+            || HitHelper(ray, tMin, hitRecord, m_nodes[nodeIndex].right, depth+1);
     }
 };
 
