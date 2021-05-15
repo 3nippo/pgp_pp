@@ -2,6 +2,8 @@
 
 #include "TriangleFace.cuh.cu"
 #include "utils.cuh.cu"
+#include "dummy_helper.cuh.cu"
+#include "PolygonsManager.cuh.cu"
 
 
 #include <vector>
@@ -103,9 +105,10 @@ class BVH
 };
 
 template<>
-class BVH<true>
+class BVH<false>
 {
 protected:
+    PolygonsManager<false> m_polygonsManager;
     std::vector<BVHNode> m_nodes;
 public:
     BVH(
@@ -114,6 +117,9 @@ public:
     {
         BVHNode::FromFaces(faces, m_nodes, 0, faces.size());
     }
+
+    void InitBeforeRender() {}
+    void DeinitAfterRender() {}
     
     bool Hit(
         const Ray &ray, 
@@ -124,7 +130,7 @@ public:
         return HitHelper(ray, tMin, hitRecord, m_nodes.size() - 1);
     }
 
-private:
+protected:
     bool HitHelper(
         const Ray &ray, 
         const float tMin,
@@ -135,8 +141,75 @@ private:
         if (!m_nodes[index].box.Hit(ray, tMin, hitRecord.t))
             return false;
 
+        if (m_nodes[index].polygonIndex != std::numeric_limits<size_t>::max())
+        {
+            return m_polygonsManager.Hit(
+                ray,
+                tMin,
+                hitRecord,
+                index
+            );
+        }
+
         return HitHelper(ray, tMin, hitRecord, m_nodes[index].left)
             || HitHelper(ray, tMin, hitRecord, m_nodes[index].right);
+    }
+};
+
+template<>
+class BVH<true> : public BVH<false>
+{
+private:
+    PolygonsManager<true> m_polygonsManager;
+    CudaMemoryLogic<BVHNode> m_nodes_d;
+
+public:
+    using BVH<false>::BVH;
+
+    
+    void InitBeforeRender() 
+    {
+        m_nodes_d.memcpy(this->m_nodes.data(), cudaMemcpyHostToDevice);
+        this->m_nodes.clear();
+    }
+    void DeinitAfterRender() 
+    {
+        m_nodes_d.dealloc();
+    }
+    
+    __device__
+    bool Hit(
+        const Ray &ray, 
+        const float tMin,
+        HitRecord &hitRecord
+    ) const
+    {
+        return HitHelper(ray, tMin, hitRecord, m_nodes_d.count - 1);
+    }
+private:
+    __device__
+    bool HitHelper(
+        const Ray &ray, 
+        const float tMin,
+        HitRecord &hitRecord,
+        size_t index
+    ) const
+    {
+        if (!m_nodes_d.get()[index].box.Hit(ray, tMin, hitRecord.t))
+            return false;
+
+        if (m_nodes_d.get()[index].polygonIndex != std::numeric_limits<size_t>::max())
+        {
+            return m_polygonsManager.Hit(
+                ray,
+                tMin,
+                hitRecord,
+                index
+            );
+        }
+
+        return HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[index].left)
+            || HitHelper(ray, tMin, hitRecord, m_nodes_d.get()[index].right);
     }
 };
 
