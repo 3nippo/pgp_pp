@@ -1,5 +1,7 @@
 #include "TriangleFace.cuh.cu"
 
+#include <algorithm>
+
 
 namespace RayTracing 
 {
@@ -46,6 +48,23 @@ const
     }
 
     return false;
+}
+
+__host__ 
+aabb TriangleFace::BoundingBox() const
+{
+    return aabb{
+        Point3{
+            std::min({ m_A.d.x, m_B.d.x, m_C.d.x }),
+            std::min({ m_A.d.y, m_B.d.y, m_C.d.y }),
+            std::min({ m_A.d.z, m_B.d.z, m_C.d.z })
+        },
+        Point3{
+            std::max({ m_A.d.x, m_B.d.x, m_C.d.x }),
+            std::max({ m_A.d.y, m_B.d.y, m_C.d.y }),
+            std::max({ m_A.d.z, m_B.d.z, m_C.d.z })
+        }
+    };
 }
 
 MappedTriangleFace::MappedTriangleFace(

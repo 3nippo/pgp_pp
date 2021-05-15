@@ -6,6 +6,7 @@
 #include "HitRecord.cuh.cu"
 #include "Texture.cuh.cu"
 #include "Material.cuh.cu"
+#include "aabb.cuh.cu"
 
 namespace RayTracing 
 {
@@ -30,6 +31,9 @@ public:
         const float tMin,
         HitRecord &hitRecord
     ) const;
+
+    __host__ 
+    aabb BoundingBox() const;
 };
 
 class MappedTriangleFace : public TriangleFace
