@@ -15,14 +15,14 @@ namespace RayTracing
 class TriangleFace : public Plane
 {
 private:
-    const Material * const * const m_material;
+    Material * const * const m_material;
 public:
     TriangleFace(
         const Point3 &A, 
         const Point3 &B,
         const Point3 &C,
         const Point3 &origin,
-        const Material * const * const material=nullptr
+        Material * const * const material=nullptr
     );
     
     __host__ __device__
@@ -47,7 +47,7 @@ public:
         const Point3 &B,
         const Point3 &C,
         const Point3 &origin,
-        const Material * const * const material,
+        Material * const * const material,
         const TriangleMapping &mapping
     );
 
